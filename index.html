@@ -17,7 +17,7 @@ body{color:var(--ink);font:16px/1.5 var(--sans);min-height:100vh;padding:22px 14
   background:
     radial-gradient(ellipse 90% 60% at 50% 0%,#1f5b3f 0%,transparent 70%),
     repeating-linear-gradient(45deg,rgba(255,255,255,.018) 0 2px,transparent 2px 5px),
-    var(--felt-dark) fixed}
+    var(--felt-dark)}
 main{max-width:1020px;margin:0 auto}
 a{color:var(--brass)}
 h1{font:700 clamp(2.2rem,7vw,4rem)/1 var(--serif);margin:0 0 .25em;color:var(--brass);text-shadow:0 2px 0 rgba(0,0,0,.35)}
@@ -99,7 +99,7 @@ details ol{padding-left:1.2em;margin:.6em 0 0;max-width:70ch}
 .seg button.on{background:var(--brass);color:#2a2008}
 button.pile{background:none;border:0;padding:0;margin:0;color:inherit;cursor:pointer;transition:transform .15s}
 button.pile:not(:disabled):hover{transform:translateY(-4px)}
-button.pile:disabled{cursor:default}
+button.pile:disabled{cursor:default;opacity:1}
 .foot{text-align:right;margin-top:26px}
 button.link{background:none;color:var(--muted);font:400 .82rem var(--sans);padding:.3em .5em;text-decoration:underline;opacity:.7}
 button.link:hover{opacity:1}
@@ -142,7 +142,7 @@ select#spd{padding:.55em .7em}
     <div class="panel scroller"><div id="track" class="track" aria-label="Pista de la carrera"></div></div>
     <div class="panel table-row">
       <div class="stack">
-        <button id="deck" class="pile" aria-label="Sacar carta del mazo"><div class="fc"><div class="in"><div class="f"><img src="dorso/card_back.svg" alt=""></div></div></div></button>
+        <button id="deck" class="pile" aria-label="Sacar carta del mazo"><div class="fc"><div class="in"><div class="f"><img src="dorso/card_back.webp" alt=""></div></div></div></button>
         <span id="deckCount"></span>
       </div>
       <div class="stack">
@@ -167,8 +167,8 @@ select#spd{padding:.55em .7em}
   <dialog id="cred" aria-labelledby="credT">
     <h2 id="credT">Créditos</h2>
     <p>Ilustraciones de las cartas: baraja española de <a href="https://commons.wikimedia.org/wiki/User:Basquetteur" rel="noopener">Basquetteur</a> (Wikimedia Commons), en la versión vectorial SVG de la colección <a href="https://github.com/gjenkins20/spanish-playing-cards-svg" rel="noopener">spanish-playing-cards-svg</a>.</p>
-    <p>Licencia: <a href="https://creativecommons.org/licenses/by-sa/3.0/deed.es" rel="noopener">Creative Commons Atribución-CompartirIgual 3.0 (CC BY-SA 3.0)</a>. Las cartas de las carpetas <code>oros</code>, <code>copas</code>, <code>espadas</code>, <code>bastos</code> y <code>dorso</code> se distribuyen bajo esa misma licencia.</p>
-    <p>Las imágenes se han adaptado para utilizar únicamente una baraja de 40 cartas (sin los ochos ni los nueves). Las ilustraciones no se han modificado.</p>
+    <p>Licencia: <a href="https://creativecommons.org/licenses/by-sa/3.0/deed.es" rel="noopener">Creative Commons Atribución-CompartirIgual 3.0 (CC BY-SA 3.0)</a>. Las cartas (SVG y WebP) de las carpetas <code>oros</code>, <code>copas</code>, <code>espadas</code>, <code>bastos</code> y <code>dorso</code> se distribuyen bajo esa misma licencia.</p>
+    <p>Las imágenes se han adaptado para utilizar únicamente una baraja de 40 cartas (sin los ochos ni los nueves). Las ilustraciones no se han modificado: el juego las muestra como imágenes WebP renderizadas a partir de los SVG originales, que también se incluyen en cada carpeta.</p>
     <form method="dialog"><button class="ghost">Cerrar</button></form>
   </dialog>
 </main>
@@ -183,13 +183,13 @@ const SUITS=[
 const RANKS=[1,2,3,4,5,6,7,10,11,12];
 const RN={1:'As',10:'Sota',11:'Caballo',12:'Rey'};
 let META=8,NCHECK=7;const PAYOUT=3,START_CHIPS=100,MAX_PLAYERS=6;
-const BACK='dorso/card_back.svg';
+const BACK='dorso/card_back.webp';
 const $=id=>document.getElementById(id);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const suitOf=id=>SUITS.find(s=>s.id===id);
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const cardName=c=>`${RN[c.rank]||c.rank} de ${suitOf(c.suit).name.toLowerCase()}`;
-const src=c=>`${c.suit}/card_${suitOf(c.suit).file}_${String(c.rank).padStart(2,'0')}.svg`;
+const src=c=>`${c.suit}/card_${suitOf(c.suit).file}_${String(c.rank).padStart(2,'0')}.webp`;
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
 /* carta con volteo: dorso visible y, al añadir .up, gira y muestra la ilustración original */
@@ -202,7 +202,8 @@ function fc(c,{w,up=false,cls=''}={}){
   return d;
 }
 const loaded=new Set();
-const preload=u=>loaded.has(u)?Promise.resolve():new Promise(r=>{const i=new Image();const done=()=>{loaded.add(u);r();};i.onload=i.onerror=done;i.src=u;setTimeout(r,4000);});
+const preload=u=>loaded.has(u)?Promise.resolve():new Promise(r=>{const i=new Image();const done=()=>{loaded.add(u);r();};i.src=u;(i.decode?i.decode():Promise.reject()).then(done,done);setTimeout(r,4000);});
+const warm=cards=>cards.forEach(c=>{const i=new Image();i.src=src(c);});
 
 /* fichas guardadas en el navegador */
 let chips={};
@@ -259,7 +260,7 @@ function newRace(){
   $('banner').hidden=true;$('again').hidden=true;$('auto').disabled=false;
   $('last').innerHTML='<div class="slot">Aún no ha salido ninguna carta</div>';
   buildTrack();renderBets();renderLog();sync();
-  preload(src(deck[deck.length-1]));
+  preload(src(deck[deck.length-1]));warm(deck);
   if(cfg.auto){const my=token;setTimeout(()=>{if(my===token&&!over)setAuto(true);},1500);}
 }
 function startGame(){
