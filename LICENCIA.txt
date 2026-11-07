@@ -1,0 +1,9 @@
+Ilustraciones de la baraja española: Basquetteur (Wikimedia Commons)
+https://commons.wikimedia.org/wiki/User:Basquetteur
+Versión vectorial SVG: https://github.com/gjenkins20/spanish-playing-cards-svg
+Licencia: Creative Commons Atribución-CompartirIgual 3.0 (CC BY-SA 3.0)
+https://creativecommons.org/licenses/by-sa/3.0/
+
+Cambios: se han seleccionado únicamente las 40 cartas de la baraja española
+(As, 2 a 7, Sota, Caballo y Rey de cada palo), sin los ochos ni los nueves.
+Los archivos SVG no se han modificado (son copias idénticas a las originales).
