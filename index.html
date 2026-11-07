@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carrera de caballos con baraja española</title>
+<style>
+:root{
+  --felt:#17452f; --felt-dark:#0d291d; --line:#2f7455; --brass:#e0b95f; --ink:#f3eedd; --muted:#a8c6b5;
+  --serif:"Palatino Linotype","Book Antiqua",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --ratio:66.88/102.08; --flip:.75s;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{color:var(--ink);font:16px/1.5 var(--sans);min-height:100vh;padding:22px 14px 48px;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 0%,#1f5b3f 0%,transparent 70%),
+    repeating-linear-gradient(45deg,rgba(255,255,255,.018) 0 2px,transparent 2px 5px),
+    var(--felt-dark) fixed}
+main{max-width:1020px;margin:0 auto}
+a{color:var(--brass)}
+h1{font:700 clamp(2.2rem,7vw,4rem)/1 var(--serif);margin:0 0 .25em;color:var(--brass);text-shadow:0 2px 0 rgba(0,0,0,.35)}
+h2{font:700 1.3rem var(--serif);margin:0 0 10px;color:var(--brass)}
+.hero{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:22px}
+.hero p{margin:0;color:var(--muted);max-width:46ch}
+.fan{display:flex;padding:14px 26px 14px 0}
+.fan .fc{margin-left:-34px;transform-origin:50% 120%}
+.fan .fc:nth-child(1){transform:rotate(-12deg)}.fan .fc:nth-child(2){transform:rotate(-4deg) translateY(-6px)}
+.fan .fc:nth-child(3){transform:rotate(4deg) translateY(-6px)}.fan .fc:nth-child(4){transform:rotate(12deg)}
+body.playing .fan{display:none}
+.panel{background:rgba(0,0,0,.24);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+button,input,select{font:inherit}
+button{cursor:pointer;border:0;border-radius:8px;padding:.65em 1.2em;background:var(--brass);color:#2a2008;font-weight:700}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button:disabled{opacity:.45;cursor:default}
+:is(button,input,select):focus-visible{outline:3px solid #fff;outline-offset:2px}
+input,select{background:#0a2017;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:.5em .7em}
+.prow{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
+.prow input{flex:1 1 140px;min-width:0}
+.prow .x{padding:.45em .8em;background:transparent;color:var(--muted);border:1px solid var(--line)}
+.hint{font-size:.9rem;color:var(--muted);margin:6px 0 0;max-width:70ch}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+details{margin-top:12px;color:var(--muted);font-size:.95rem}
+details summary{cursor:pointer;color:var(--ink)}
+details ol{padding-left:1.2em;margin:.6em 0 0;max-width:70ch}
+
+/* cartas con volteo */
+.fc{--w:64px;width:var(--w);aspect-ratio:var(--ratio);perspective:900px;position:relative;flex:none}
+.fc .in{position:absolute;inset:0;transform-style:preserve-3d;transition:transform var(--flip) cubic-bezier(.3,.7,.25,1)}
+.fc.up .in{transform:rotateY(180deg)}
+.fc .f{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:6% / 4%;overflow:hidden;box-shadow:0 3px 10px rgba(0,0,0,.55);background:#fbfbfa}
+.fc .fr{transform:rotateY(180deg)}
+.fc img{width:100%;height:100%;display:block}
+.fc.deal{animation:deal .4s ease-out}
+@keyframes deal{from{transform:translate(-90px,-10px) rotate(-8deg);opacity:0}to{transform:none;opacity:1}}
+
+/* pista */
+.scroller{overflow-x:auto}
+.track{display:grid;grid-template-columns:92px repeat(9,minmax(72px,1fr));min-width:760px}
+.th{font-size:.82rem;color:var(--muted);text-align:center;padding-bottom:4px}
+.lane-label{display:flex;align-items:center;gap:8px;font:700 1rem var(--serif);color:var(--ink);border-top:1px solid var(--line)}
+.dot{width:14px;height:14px;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px rgba(255,255,255,.55);flex:none}
+.lane-label.small{font:400 .85rem var(--sans);color:var(--muted)}
+.cell{min-height:112px;display:flex;align-items:center;justify-content:center;border-top:1px solid var(--line);border-left:1px dashed rgba(255,255,255,.14)}
+.cell.l1,.lane-label.l1{background:rgba(0,0,0,.14)}
+.cell.start{border-left:0}
+.cell.meta{border-left:4px solid var(--ink);background:repeating-conic-gradient(rgba(255,255,255,.14) 0 25%,transparent 0 50%) 0 0/18px 18px}
+.cell.chk{min-height:96px}
+.horse{--w:62px}
+.horse.hop{animation:hop .5s ease-out}
+.horse.retreat{animation:shake .5s ease-in-out}
+.horse.win .f{box-shadow:0 0 0 3px var(--brass),0 0 26px 6px rgba(224,185,95,.8)}
+@keyframes hop{40%{transform:translateY(-14px)}}
+@keyframes shake{25%{transform:translateX(-7px) rotate(-4deg)}75%{transform:translateX(7px) rotate(4deg)}}
+.chk .fc{--w:48px}
+
+.table-row{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+.stack{display:flex;flex-direction:column;align-items:center;gap:10px;font-size:.9rem;color:var(--muted)}
+.pile{--w:150px;border-radius:6% / 4%;box-shadow:3px 3px 0 #561515,6px 6px 0 #451010,9px 9px 0 #350c0c,12px 14px 18px rgba(0,0,0,.5)}
+.pile .fc{--w:150px}
+.pile .f{box-shadow:none}
+.slot{width:150px;aspect-ratio:var(--ratio);border:2px dashed var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px;font-size:.85rem}
+.side{flex:1 1 280px;min-width:0}
+.bets{list-style:none;margin:0 0 12px;padding:0}
+.bets li{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}
+.bets .chips{margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
+.delta{font-weight:700;margin-left:6px}
+.pos{color:#8fe3a8}.neg{color:#ff9d92}
+#log{margin:0;padding:0;list-style:none;font-size:.92rem;color:var(--muted);min-height:6.4em}
+#log li:first-child{color:var(--ink)}
+.banner{background:var(--brass);color:#2a2008;border-radius:10px;padding:12px 16px;margin-bottom:14px;font:700 1.2rem var(--serif)}
+.credits{font-size:.93rem;color:var(--muted);margin-top:28px}
+.credits p{max-width:75ch;margin:.5em 0}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){:root{--flip:.01s}*{animation:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <header class="hero">
+    <div>
+      <h1>Carrera de caballos</h1>
+      <p>Los cuatro caballos de la baraja española compiten por la pista. Cada carta que sale hace avanzar al caballo de su palo. Elige el tuyo y apuesta fichas.</p>
+    </div>
+    <div class="fan" id="fan" aria-hidden="true"></div>
+  </header>
+
+  <section id="setup" class="panel">
+    <h2>Jugadores y apuestas</h2>
+    <div id="rows"></div>
+    <p class="hint">Cada jugador elige un palo y una apuesta. Si gana su caballo, cobra el triple de lo apostado; si no, pierde la apuesta. Las fichas se guardan en este navegador por nombre.</p>
+    <div class="actions">
+      <button id="add" class="ghost">Añadir jugador</button>
+      <button id="start">Empezar carrera</button>
+      <button id="resetChips" class="ghost">Reiniciar fichas</button>
+    </div>
+    <details>
+      <summary>Reglas</summary>
+      <ol>
+        <li>Se usan las 40 cartas de la baraja española. Los cuatro caballos son los corredores y quedan en la salida.</li>
+        <li>Siete cartas se colocan boca abajo en la pista como controles. La meta está en el paso 8.</li>
+        <li>Se saca una carta del mazo: el caballo de ese palo avanza una casilla.</li>
+        <li>Cuando todos los caballos han superado un control, se voltea. El caballo del palo de esa carta retrocede una casilla.</li>
+        <li>Gana el primero que llega a la meta. Si se acaba el mazo, se baraja el descarte.</li>
+      </ol>
+    </details>
+  </section>
+
+  <section id="game" hidden>
+    <div id="banner" class="banner" hidden role="status"></div>
+    <div class="panel scroller"><div id="track" class="track" aria-label="Pista de la carrera"></div></div>
+    <div class="panel table-row">
+      <div class="stack">
+        <div class="pile"><div class="fc" aria-label="Mazo"><div class="in"><div class="f"><img src="cartas/card_back.svg" alt="Dorso de la baraja"></div></div></div></div>
+        <span id="deckCount"></span>
+      </div>
+      <div class="stack">
+        <div id="last"><div class="slot">Aún no ha salido ninguna carta</div></div>
+        <span>Última carta</span>
+      </div>
+      <div class="side">
+        <h2>Apuestas</h2>
+        <ul id="bets" class="bets"></ul>
+        <div class="actions" style="margin-top:0">
+          <button id="draw">Sacar carta</button>
+          <button id="auto" class="ghost" aria-pressed="false">Automático</button>
+          <button id="again" class="ghost" hidden>Otra carrera</button>
+          <button id="back" class="ghost">Cambiar jugadores</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel"><h2>Crónica</h2><ul id="log"></ul></div>
+  </section>
+
+  <footer id="creditos" class="panel credits">
+    <h2>Créditos</h2>
+    <p>Ilustraciones de las cartas: baraja española de <a href="https://commons.wikimedia.org/wiki/User:Basquetteur" rel="noopener">Basquetteur</a> (Wikimedia Commons), en la versión vectorial SVG de la colección <a href="https://github.com/gjenkins20/spanish-playing-cards-svg" rel="noopener">spanish-playing-cards-svg</a>.</p>
+    <p>Licencia: <a href="https://creativecommons.org/licenses/by-sa/3.0/deed.es" rel="noopener">Creative Commons Atribución-CompartirIgual 3.0 (CC BY-SA 3.0)</a>. Las cartas incluidas en la carpeta <code>cartas/</code> se distribuyen bajo esa misma licencia.</p>
+    <p>Cambios realizados: las imágenes se han adaptado para utilizar únicamente una baraja de 40 cartas (As, 2 a 7, Sota, Caballo y Rey de cada palo), sin los ochos ni los nueves. Las ilustraciones no se han modificado; el volteo se hace con CSS.</p>
+  </footer>
+</main>
+
+<script>
+const SUITS=[
+  {id:'oros',name:'Oros',file:'coins',color:'#e0b13d'},
+  {id:'copas',name:'Copas',file:'cups',color:'#e5665c'},
+  {id:'espadas',name:'Espadas',file:'swords',color:'#6aa0ec'},
+  {id:'bastos',name:'Bastos',file:'clubs',color:'#74c36f'}
+];
+const RANKS=[1,2,3,4,5,6,7,10,11,12];
+const RN={1:'As',10:'Sota',11:'Caballo',12:'Rey'};
+const META=8,NCHECK=7,PAYOUT=3,START_CHIPS=100,MAX_PLAYERS=6,FLIP=750;
+const BACK='cartas/card_back.svg';
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const suitOf=id=>SUITS.find(s=>s.id===id);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cardName=c=>`${RN[c.rank]||c.rank} de ${suitOf(c.suit).name.toLowerCase()}`;
+const src=c=>`cartas/card_${suitOf(c.suit).file}_${String(c.rank).padStart(2,'0')}.svg`;
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+/* carta con volteo: dorso visible y, al añadir .up, gira y muestra la ilustración original */
+function fc(c,{w,up=false,cls=''}={}){
+  const d=document.createElement('div');
+  d.className=`fc ${cls} ${up?'up':''}`;
+  if(w)d.style.setProperty('--w',w+'px');
+  d.setAttribute('role','img');d.setAttribute('aria-label',cardName(c));
+  d.innerHTML=`<div class="in"><div class="f"><img src="${BACK}" alt="" decoding="async"></div><div class="f fr"><img src="${src(c)}" alt="${cardName(c)}" decoding="async"></div></div>`;
+  return d;
+}
+const loaded=new Set();
+const preload=u=>loaded.has(u)?Promise.resolve():new Promise(r=>{const i=new Image();const done=()=>{loaded.add(u);r();};i.onload=i.onerror=done;i.src=u;setTimeout(r,4000);});
+
+/* fichas guardadas en el navegador */
+let chips={};
+try{chips=JSON.parse(localStorage.getItem('carrera_fichas')||'{}')}catch(e){}
+const saveChips=()=>{try{localStorage.setItem('carrera_fichas',JSON.stringify(chips))}catch(e){}};
+const getChips=n=>chips[n]??START_CHIPS;
+
+/* preparación */
+let rows=[{name:'Jugador 1',horse:'oros',bet:10},{name:'Jugador 2',horse:'copas',bet:10}];
+function renderSetup(){
+  $('rows').innerHTML=rows.map((p,i)=>`
+    <div class="prow">
+      <input data-i="${i}" data-k="name" value="${esc(p.name)}" maxlength="14" aria-label="Nombre del jugador ${i+1}">
+      <select data-i="${i}" data-k="horse" aria-label="Palo de ${esc(p.name)}">${SUITS.map(s=>`<option value="${s.id}" ${s.id===p.horse?'selected':''}>${s.name}</option>`).join('')}</select>
+      <select data-i="${i}" data-k="bet" aria-label="Apuesta de ${esc(p.name)}">${[5,10,20].map(b=>`<option value="${b}" ${b===p.bet?'selected':''}>${b} fichas</option>`).join('')}</select>
+      <button class="x" data-del="${i}" ${rows.length<2?'disabled':''}>Quitar</button>
+    </div>`).join('');
+  $('add').disabled=rows.length>=MAX_PLAYERS;
+}
+$('rows').addEventListener('input',e=>{const t=e.target;if(t.dataset.k==='name')rows[t.dataset.i].name=t.value;});
+$('rows').addEventListener('change',e=>{const t=e.target,k=t.dataset.k;if(k&&k!=='name')rows[t.dataset.i][k]=k==='bet'?+t.value:t.value;});
+$('rows').addEventListener('click',e=>{const d=e.target.dataset.del;if(d!==undefined&&rows.length>1){rows.splice(+d,1);renderSetup();}});
+$('add').onclick=()=>{if(rows.length<MAX_PLAYERS){rows.push({name:'Jugador '+(rows.length+1),horse:SUITS[rows.length%4].id,bet:10});renderSetup();}};
+$('resetChips').onclick=()=>{chips={};saveChips();};
+
+/* abanico de caballos de la cabecera */
+SUITS.forEach((s,i)=>{const el=fc({suit:s.id,rank:11},{w:104});$('fan').appendChild(el);setTimeout(()=>el.classList.add('up'),250+i*180);});
+
+/* partida */
+let deck,discard,checks,pos,revealed,over,log,players=[],horseEls={},chkEls=[],busy=false,auto=false,token=0;
+function newRace(){
+  token++;busy=false;setAuto(false);
+  deck=shuffle(SUITS.flatMap(s=>RANKS.filter(r=>r!==11).map(r=>({suit:s.id,rank:r}))));
+  checks=deck.splice(0,NCHECK);
+  discard=[];revealed=0;over=false;log=['Los caballos están en la salida.'];
+  pos={oros:0,copas:0,espadas:0,bastos:0};
+  $('banner').hidden=true;$('again').hidden=true;$('draw').disabled=false;$('auto').disabled=false;
+  $('last').innerHTML='<div class="slot">Aún no ha salido ninguna carta</div>';
+  buildTrack();renderBets();renderLog();
+  $('deckCount').textContent=`${deck.length} en el mazo`;
+  preload(src(deck[deck.length-1]));
+}
+function startGame(){
+  players=rows.map((p,i)=>({name:(p.name||'').trim()||'Jugador '+(i+1),horse:p.horse,bet:p.bet}));
+  $('setup').hidden=true;$('game').hidden=false;document.body.classList.add('playing');
+  newRace();
+}
+function buildTrack(){
+  let h='<div></div>';
+  for(let c=0;c<=META;c++)h+=`<div class="th">${c===0?'Salida':c===META?'Meta':''}</div>`;
+  SUITS.forEach((s,i)=>{
+    const b=i%2?'':' l1';
+    h+=`<div class="lane-label${b}"><span class="dot" style="--c:${s.color}"></span>${s.name}</div>`;
+    for(let c=0;c<=META;c++)h+=`<div class="cell${b}${c===0?' start':''}${c===META?' meta':''}" data-l="${s.id}" data-c="${c}"></div>`;
+  });
+  h+='<div class="lane-label small">Controles</div>';
+  for(let c=0;c<=META;c++)h+=`<div class="cell chk" data-k="${c}"></div>`;
+  $('track').innerHTML=h;
+  SUITS.forEach((s,i)=>{
+    const el=fc({suit:s.id,rank:11},{cls:'horse'});el.dataset.p=0;horseEls[s.id]=el;
+    $('track').querySelector(`.cell[data-l="${s.id}"][data-c="0"]`).appendChild(el);
+    setTimeout(()=>el.classList.add('up'),200+i*170);
+  });
+  chkEls=checks.map((c,i)=>{const el=fc(c);$('track').querySelector(`.cell[data-k="${i+1}"]`).appendChild(el);return el;});
+}
+function moveHorses(){
+  SUITS.forEach(s=>{
+    const h=horseEls[s.id],prev=+h.dataset.p,now=pos[s.id];
+    if(prev===now)return;
+    $('track').querySelector(`.cell[data-l="${s.id}"][data-c="${now}"]`).appendChild(h);
+    h.dataset.p=now;h.classList.remove('hop','retreat');void h.offsetWidth;h.classList.add(now>prev?'hop':'retreat');
+  });
+}
+const say=t=>{log.unshift(t);if(log.length>6)log.pop();};
+function setAuto(v){auto=v;$('auto').setAttribute('aria-pressed',v);$('auto').textContent=v?'Pausar':'Automático';if(v&&!busy&&!over)draw();}
+
+async function draw(){
+  if(over||busy)return;
+  busy=true;$('draw').disabled=true;const my=token;
+  if(!deck.length){deck=shuffle(discard);discard=[];say('Se acaba el mazo: se baraja el descarte.');}
+  const c=deck.pop();discard.push(c);
+  $('deckCount').textContent=`${deck.length} en el mazo`;
+  const el=fc(c,{w:150,cls:'deal'});
+  $('last').replaceChildren(el);
+  await preload(src(c));if(my!==token)return;
+  el.classList.add('up');
+  await sleep(FLIP+250);if(my!==token)return;
+  const s=suitOf(c.suit);pos[c.suit]++;
+  say(`Sale el ${cardName(c)}: avanza el caballo de ${s.name.toLowerCase()}.`);
+  moveHorses();renderLog();
+  if(pos[c.suit]>=META){busy=false;finish(c.suit);return;}
+  await sleep(550);if(my!==token)return;
+  while(revealed<NCHECK&&Math.min(...Object.values(pos))>=revealed+1){
+    const k=checks[revealed];chkEls[revealed].classList.add('up');revealed++;
+    await sleep(FLIP+300);if(my!==token)return;
+    pos[k.suit]=Math.max(0,pos[k.suit]-1);
+    say(`Control ${revealed}: se voltea el ${cardName(k)} y el caballo de ${suitOf(k.suit).name.toLowerCase()} retrocede.`);
+    moveHorses();renderLog();
+    await sleep(550);if(my!==token)return;
+  }
+  busy=false;$('draw').disabled=false;
+  if(deck.length)preload(src(deck[deck.length-1]));
+  if(auto)setTimeout(()=>{if(my===token)draw();},300);
+}
+function finish(suit){
+  over=true;setAuto(false);
+  horseEls[suit].classList.add('win');
+  const s=suitOf(suit);
+  players.forEach(p=>{p.delta=p.horse===suit?p.bet*PAYOUT:-p.bet;chips[p.name]=getChips(p.name)+p.delta;});
+  saveChips();
+  const w=players.filter(p=>p.horse===suit).map(p=>p.name);
+  const b=$('banner');
+  b.textContent=`Gana el caballo de ${s.name.toLowerCase()}. ${w.length?'Cobra: '+w.join(', ')+'.':'Nadie había apostado por él.'}`;
+  b.hidden=false;
+  say(`El caballo de ${s.name.toLowerCase()} cruza la meta.`);
+  $('draw').disabled=true;$('auto').disabled=true;$('again').hidden=false;
+  renderBets();renderLog();
+}
+function renderBets(){
+  $('bets').innerHTML=players.map(p=>{
+    const s=suitOf(p.horse);
+    const d=p.delta!==undefined&&over?`<span class="delta ${p.delta>0?'pos':'neg'}">${p.delta>0?'+':''}${p.delta}</span>`:'';
+    return `<li><span class="dot" style="--c:${s.color}"></span><span>${esc(p.name)} apuesta ${p.bet} a ${s.name.toLowerCase()}</span><span class="chips">${getChips(p.name)} fichas${d}</span></li>`;
+  }).join('');
+}
+function renderLog(){$('log').innerHTML=log.map(t=>`<li>${esc(t)}</li>`).join('');}
+
+$('start').onclick=startGame;
+$('draw').onclick=draw;
+$('again').onclick=newRace;
+$('auto').onclick=()=>setAuto(!auto);
+$('back').onclick=()=>{token++;busy=false;setAuto(false);$('game').hidden=true;$('setup').hidden=false;document.body.classList.remove('playing');};
+renderSetup();
+</script>
+</body>
+</html>
