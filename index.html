@@ -132,7 +132,7 @@ details ol{padding-left:1.2em;margin:.6em 0 0;max-width:70ch}
     <div class="panel scroller"><div id="track" class="track" aria-label="Pista de la carrera"></div></div>
     <div class="panel table-row">
       <div class="stack">
-        <div class="pile"><div class="fc" aria-label="Mazo"><div class="in"><div class="f"><img src="cartas/card_back.svg" alt="Dorso de la baraja"></div></div></div></div>
+        <div class="pile"><div class="fc" aria-label="Mazo"><div class="in"><div class="f"><img src="dorso/card_back.svg" alt="Dorso de la baraja"></div></div></div></div>
         <span id="deckCount"></span>
       </div>
       <div class="stack">
@@ -156,7 +156,7 @@ details ol{padding-left:1.2em;margin:.6em 0 0;max-width:70ch}
   <footer id="creditos" class="panel credits">
     <h2>Créditos</h2>
     <p>Ilustraciones de las cartas: baraja española de <a href="https://commons.wikimedia.org/wiki/User:Basquetteur" rel="noopener">Basquetteur</a> (Wikimedia Commons), en la versión vectorial SVG de la colección <a href="https://github.com/gjenkins20/spanish-playing-cards-svg" rel="noopener">spanish-playing-cards-svg</a>.</p>
-    <p>Licencia: <a href="https://creativecommons.org/licenses/by-sa/3.0/deed.es" rel="noopener">Creative Commons Atribución-CompartirIgual 3.0 (CC BY-SA 3.0)</a>. Las cartas incluidas en la carpeta <code>cartas/</code> se distribuyen bajo esa misma licencia.</p>
+    <p>Licencia: <a href="https://creativecommons.org/licenses/by-sa/3.0/deed.es" rel="noopener">Creative Commons Atribución-CompartirIgual 3.0 (CC BY-SA 3.0)</a>. Las cartas incluidas en las carpetas <code>oros</code>, <code>copas</code>, <code>espadas</code>, <code>bastos</code> y <code>dorso</code> se distribuyen bajo esa misma licencia.</p>
     <p>Cambios realizados: las imágenes se han adaptado para utilizar únicamente una baraja de 40 cartas (As, 2 a 7, Sota, Caballo y Rey de cada palo), sin los ochos ni los nueves. Las ilustraciones no se han modificado; el volteo se hace con CSS.</p>
   </footer>
 </main>
@@ -171,13 +171,13 @@ const SUITS=[
 const RANKS=[1,2,3,4,5,6,7,10,11,12];
 const RN={1:'As',10:'Sota',11:'Caballo',12:'Rey'};
 const META=8,NCHECK=7,PAYOUT=3,START_CHIPS=100,MAX_PLAYERS=6,FLIP=750;
-const BACK='cartas/card_back.svg';
+const BACK='dorso/card_back.svg';
 const $=id=>document.getElementById(id);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const suitOf=id=>SUITS.find(s=>s.id===id);
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const cardName=c=>`${RN[c.rank]||c.rank} de ${suitOf(c.suit).name.toLowerCase()}`;
-const src=c=>`cartas/card_${suitOf(c.suit).file}_${String(c.rank).padStart(2,'0')}.svg`;
+const src=c=>`${c.suit}/card_${suitOf(c.suit).file}_${String(c.rank).padStart(2,'0')}.svg`;
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
 /* carta con volteo: dorso visible y, al añadir .up, gira y muestra la ilustración original */
