@@ -57,7 +57,7 @@ details ol{padding-left:1.2em;margin:.6em 0 0;max-width:70ch}
 
 /* pista */
 .scroller{overflow-x:auto}
-.track{display:grid;grid-template-columns:92px repeat(9,minmax(72px,1fr));min-width:760px}
+.track{display:grid}
 .th{font-size:.82rem;color:var(--muted);text-align:center;padding-bottom:4px}
 .lane-label{display:flex;align-items:center;gap:8px;font:700 1rem var(--serif);color:var(--ink);border-top:1px solid var(--line)}
 .dot{width:14px;height:14px;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px rgba(255,255,255,.55);flex:none}
@@ -90,8 +90,24 @@ details ol{padding-left:1.2em;margin:.6em 0 0;max-width:70ch}
 #log{margin:0;padding:0;list-style:none;font-size:.92rem;color:var(--muted);min-height:6.4em}
 #log li:first-child{color:var(--ink)}
 .banner{background:var(--brass);color:#2a2008;border-radius:10px;padding:12px 16px;margin-bottom:14px;font:700 1.2rem var(--serif)}
-.credits{font-size:.93rem;color:var(--muted);margin-top:28px}
-.credits p{max-width:75ch;margin:.5em 0}
+
+.cfg{margin-top:14px;display:grid;gap:10px}
+.cfgrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.cfgrow>span{min-width:84px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{background:transparent;color:var(--ink);border-radius:0;padding:.5em 1.1em;font-weight:600}
+.seg button.on{background:var(--brass);color:#2a2008}
+button.pile{background:none;border:0;padding:0;margin:0;color:inherit;cursor:pointer;transition:transform .15s}
+button.pile:not(:disabled):hover{transform:translateY(-4px)}
+button.pile:disabled{cursor:default}
+.foot{text-align:right;margin-top:26px}
+button.link{background:none;color:var(--muted);font:400 .82rem var(--sans);padding:.3em .5em;text-decoration:underline;opacity:.7}
+button.link:hover{opacity:1}
+dialog{background:#10281d;color:var(--ink);border:1px solid var(--line);border-radius:12px;max-width:min(520px,92vw);padding:20px}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog p{margin:.5em 0;font-size:.95rem;color:var(--muted)}
+dialog form{margin-top:14px;text-align:right}
+select#spd{padding:.55em .7em}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){:root{--flip:.01s}*{animation:none!important}}
 </style>
@@ -101,7 +117,7 @@ details ol{padding-left:1.2em;margin:.6em 0 0;max-width:70ch}
   <header class="hero">
     <div>
       <h1>Carrera de caballos</h1>
-      <p>Los cuatro caballos de la baraja española compiten por la pista. Cada carta que sale hace avanzar al caballo de su palo. Elige el tuyo y apuesta fichas.</p>
+      
     </div>
     <div class="fan" id="fan" aria-hidden="true"></div>
   </header>
@@ -109,22 +125,16 @@ details ol{padding-left:1.2em;margin:.6em 0 0;max-width:70ch}
   <section id="setup" class="panel">
     <h2>Jugadores y apuestas</h2>
     <div id="rows"></div>
-    <p class="hint">Cada jugador elige un palo y una apuesta. Si gana su caballo, cobra el triple de lo apostado; si no, pierde la apuesta. Las fichas se guardan en este navegador por nombre.</p>
+    <div class="cfg">
+      <div class="cfgrow"><span>Pista</span><div class="seg" id="segLen" role="radiogroup" aria-label="Largo de la pista"></div></div>
+      <div class="cfgrow"><span>Modo</span><div class="seg" id="segMode" role="radiogroup" aria-label="Modo de juego"></div></div>
+      <div class="cfgrow" id="rowSpeed" hidden><span>Velocidad</span><div class="seg" id="segSpeed" role="radiogroup" aria-label="Velocidad"></div></div>
+    </div>
     <div class="actions">
       <button id="add" class="ghost">Añadir jugador</button>
       <button id="start">Empezar carrera</button>
       <button id="resetChips" class="ghost">Reiniciar fichas</button>
     </div>
-    <details>
-      <summary>Reglas</summary>
-      <ol>
-        <li>Se usan las 40 cartas de la baraja española. Los cuatro caballos son los corredores y quedan en la salida.</li>
-        <li>Siete cartas se colocan boca abajo en la pista como controles. La meta está en el paso 8.</li>
-        <li>Se saca una carta del mazo: el caballo de ese palo avanza una casilla.</li>
-        <li>Cuando todos los caballos han superado un control, se voltea. El caballo del palo de esa carta retrocede una casilla.</li>
-        <li>Gana el primero que llega a la meta. Si se acaba el mazo, se baraja el descarte.</li>
-      </ol>
-    </details>
   </section>
 
   <section id="game" hidden>
@@ -132,7 +142,7 @@ details ol{padding-left:1.2em;margin:.6em 0 0;max-width:70ch}
     <div class="panel scroller"><div id="track" class="track" aria-label="Pista de la carrera"></div></div>
     <div class="panel table-row">
       <div class="stack">
-        <div class="pile"><div class="fc" aria-label="Mazo"><div class="in"><div class="f"><img src="dorso/card_back.svg" alt="Dorso de la baraja"></div></div></div></div>
+        <button id="deck" class="pile" aria-label="Sacar carta del mazo"><div class="fc"><div class="in"><div class="f"><img src="dorso/card_back.svg" alt=""></div></div></div></button>
         <span id="deckCount"></span>
       </div>
       <div class="stack">
@@ -143,22 +153,24 @@ details ol{padding-left:1.2em;margin:.6em 0 0;max-width:70ch}
         <h2>Apuestas</h2>
         <ul id="bets" class="bets"></ul>
         <div class="actions" style="margin-top:0">
-          <button id="draw">Sacar carta</button>
           <button id="auto" class="ghost" aria-pressed="false">Automático</button>
+          <select id="spd" aria-label="Velocidad" hidden><option value="lenta">Lenta</option><option value="normal">Normal</option><option value="rapida">Rápida</option></select>
           <button id="again" class="ghost" hidden>Otra carrera</button>
-          <button id="back" class="ghost">Cambiar jugadores</button>
+          <button id="back" class="ghost">Configuración</button>
         </div>
       </div>
     </div>
     <div class="panel"><h2>Crónica</h2><ul id="log"></ul></div>
   </section>
 
-  <footer id="creditos" class="panel credits">
-    <h2>Créditos</h2>
+  <footer class="foot"><button type="button" class="link" id="credBtn">Créditos</button></footer>
+  <dialog id="cred" aria-labelledby="credT">
+    <h2 id="credT">Créditos</h2>
     <p>Ilustraciones de las cartas: baraja española de <a href="https://commons.wikimedia.org/wiki/User:Basquetteur" rel="noopener">Basquetteur</a> (Wikimedia Commons), en la versión vectorial SVG de la colección <a href="https://github.com/gjenkins20/spanish-playing-cards-svg" rel="noopener">spanish-playing-cards-svg</a>.</p>
-    <p>Licencia: <a href="https://creativecommons.org/licenses/by-sa/3.0/deed.es" rel="noopener">Creative Commons Atribución-CompartirIgual 3.0 (CC BY-SA 3.0)</a>. Las cartas incluidas en las carpetas <code>oros</code>, <code>copas</code>, <code>espadas</code>, <code>bastos</code> y <code>dorso</code> se distribuyen bajo esa misma licencia.</p>
-    <p>Cambios realizados: las imágenes se han adaptado para utilizar únicamente una baraja de 40 cartas (As, 2 a 7, Sota, Caballo y Rey de cada palo), sin los ochos ni los nueves. Las ilustraciones no se han modificado; el volteo se hace con CSS.</p>
-  </footer>
+    <p>Licencia: <a href="https://creativecommons.org/licenses/by-sa/3.0/deed.es" rel="noopener">Creative Commons Atribución-CompartirIgual 3.0 (CC BY-SA 3.0)</a>. Las cartas de las carpetas <code>oros</code>, <code>copas</code>, <code>espadas</code>, <code>bastos</code> y <code>dorso</code> se distribuyen bajo esa misma licencia.</p>
+    <p>Las imágenes se han adaptado para utilizar únicamente una baraja de 40 cartas (sin los ochos ni los nueves). Las ilustraciones no se han modificado.</p>
+    <form method="dialog"><button class="ghost">Cerrar</button></form>
+  </dialog>
 </main>
 
 <script>
@@ -170,7 +182,7 @@ const SUITS=[
 ];
 const RANKS=[1,2,3,4,5,6,7,10,11,12];
 const RN={1:'As',10:'Sota',11:'Caballo',12:'Rey'};
-const META=8,NCHECK=7,PAYOUT=3,START_CHIPS=100,MAX_PLAYERS=6,FLIP=750;
+let META=8,NCHECK=7;const PAYOUT=3,START_CHIPS=100,MAX_PLAYERS=6;
 const BACK='dorso/card_back.svg';
 const $=id=>document.getElementById(id);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -219,26 +231,52 @@ $('resetChips').onclick=()=>{chips={};saveChips();};
 /* abanico de caballos de la cabecera */
 SUITS.forEach((s,i)=>{const el=fc({suit:s.id,rank:11},{w:104});$('fan').appendChild(el);setTimeout(()=>el.classList.add('up'),250+i*180);});
 
+/* configuración */
+const cfg={ncheck:7,auto:false,speed:'normal'};
+const SPEEDS={lenta:1.5,normal:.8,rapida:.35};
+const RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
+function seg(id,opts,get,set){
+  const el=$(id);
+  const paint=()=>{el.innerHTML=opts.map(([v,l])=>`<button type="button" role="radio" aria-checked="${get()===v}" class="${get()===v?'on':''}" data-v="${v}">${l}</button>`).join('');};
+  el.onclick=e=>{const v=e.target.dataset.v;if(v===undefined)return;set(v);paint();};
+  paint();return paint;
+}
+const repaint=[
+  seg('segLen',[['5','Corta'],['7','Normal'],['10','Larga']],()=>String(cfg.ncheck),v=>{cfg.ncheck=+v;}),
+  seg('segMode',[['m','Manual'],['a','Automático']],()=>cfg.auto?'a':'m',v=>{cfg.auto=v==='a';$('rowSpeed').hidden=!cfg.auto;}),
+  seg('segSpeed',[['lenta','Lenta'],['normal','Normal'],['rapida','Rápida']],()=>cfg.speed,v=>{cfg.speed=v;})
+];
+
 /* partida */
 let deck,discard,checks,pos,revealed,over,log,players=[],horseEls={},chkEls=[],busy=false,auto=false,token=0;
 function newRace(){
-  token++;busy=false;setAuto(false);
+  token++;busy=false;auto=false;
+  NCHECK=cfg.ncheck;META=NCHECK+1;
   deck=shuffle(SUITS.flatMap(s=>RANKS.filter(r=>r!==11).map(r=>({suit:s.id,rank:r}))));
   checks=deck.splice(0,NCHECK);
   discard=[];revealed=0;over=false;log=['Los caballos están en la salida.'];
   pos={oros:0,copas:0,espadas:0,bastos:0};
-  $('banner').hidden=true;$('again').hidden=true;$('draw').disabled=false;$('auto').disabled=false;
+  $('banner').hidden=true;$('again').hidden=true;$('auto').disabled=false;
   $('last').innerHTML='<div class="slot">Aún no ha salido ninguna carta</div>';
-  buildTrack();renderBets();renderLog();
-  $('deckCount').textContent=`${deck.length} en el mazo`;
+  buildTrack();renderBets();renderLog();sync();
   preload(src(deck[deck.length-1]));
+  if(cfg.auto){const my=token;setTimeout(()=>{if(my===token&&!over)setAuto(true);},1500);}
 }
 function startGame(){
   players=rows.map((p,i)=>({name:(p.name||'').trim()||'Jugador '+(i+1),horse:p.horse,bet:p.bet}));
   $('setup').hidden=true;$('game').hidden=false;document.body.classList.add('playing');
   newRace();
 }
+function sync(){
+  $('deck').disabled=over||busy||auto;
+  $('deckCount').textContent=over?'Fin de carrera':auto?`${deck.length} cartas`:`Toca el mazo (${deck.length})`;
+  $('auto').setAttribute('aria-pressed',auto);$('auto').textContent=auto?'Pausar':'Automático';
+  $('spd').hidden=!auto;$('spd').value=cfg.speed;
+}
 function buildTrack(){
+  const T=$('track');
+  T.style.gridTemplateColumns=`92px repeat(${META+1},minmax(72px,1fr))`;
+  T.style.minWidth=(92+(META+1)*72)+'px';
   let h='<div></div>';
   for(let c=0;c<=META;c++)h+=`<div class="th">${c===0?'Salida':c===META?'Meta':''}</div>`;
   SUITS.forEach((s,i)=>{
@@ -248,13 +286,13 @@ function buildTrack(){
   });
   h+='<div class="lane-label small">Controles</div>';
   for(let c=0;c<=META;c++)h+=`<div class="cell chk" data-k="${c}"></div>`;
-  $('track').innerHTML=h;
+  T.innerHTML=h;
   SUITS.forEach((s,i)=>{
     const el=fc({suit:s.id,rank:11},{cls:'horse'});el.dataset.p=0;horseEls[s.id]=el;
-    $('track').querySelector(`.cell[data-l="${s.id}"][data-c="0"]`).appendChild(el);
+    T.querySelector(`.cell[data-l="${s.id}"][data-c="0"]`).appendChild(el);
     setTimeout(()=>el.classList.add('up'),200+i*170);
   });
-  chkEls=checks.map((c,i)=>{const el=fc(c);$('track').querySelector(`.cell[data-k="${i+1}"]`).appendChild(el);return el;});
+  chkEls=checks.map((c,i)=>{const el=fc(c);T.querySelector(`.cell[data-k="${i+1}"]`).appendChild(el);return el;});
 }
 function moveHorses(){
   SUITS.forEach(s=>{
@@ -265,38 +303,39 @@ function moveHorses(){
   });
 }
 const say=t=>{log.unshift(t);if(log.length>6)log.pop();};
-function setAuto(v){auto=v;$('auto').setAttribute('aria-pressed',v);$('auto').textContent=v?'Pausar':'Automático';if(v&&!busy&&!over)draw();}
+function setAuto(v){auto=v;cfg.auto=v;sync();if(v&&!busy&&!over)draw();}
 
 async function draw(){
   if(over||busy)return;
-  busy=true;$('draw').disabled=true;const my=token;
+  busy=true;const my=token;
+  const f=auto?SPEEDS[cfg.speed]:.9,w=ms=>sleep(ms*f);
+  if(!RM)document.documentElement.style.setProperty('--flip',(.75*f)+'s');
   if(!deck.length){deck=shuffle(discard);discard=[];say('Se acaba el mazo: se baraja el descarte.');}
-  const c=deck.pop();discard.push(c);
-  $('deckCount').textContent=`${deck.length} en el mazo`;
+  const c=deck.pop();discard.push(c);sync();
   const el=fc(c,{w:150,cls:'deal'});
   $('last').replaceChildren(el);
   await preload(src(c));if(my!==token)return;
   el.classList.add('up');
-  await sleep(FLIP+250);if(my!==token)return;
+  await w(1000);if(my!==token)return;
   const s=suitOf(c.suit);pos[c.suit]++;
   say(`Sale el ${cardName(c)}: avanza el caballo de ${s.name.toLowerCase()}.`);
   moveHorses();renderLog();
   if(pos[c.suit]>=META){busy=false;finish(c.suit);return;}
-  await sleep(550);if(my!==token)return;
+  await w(550);if(my!==token)return;
   while(revealed<NCHECK&&Math.min(...Object.values(pos))>=revealed+1){
     const k=checks[revealed];chkEls[revealed].classList.add('up');revealed++;
-    await sleep(FLIP+300);if(my!==token)return;
+    await w(1050);if(my!==token)return;
     pos[k.suit]=Math.max(0,pos[k.suit]-1);
     say(`Control ${revealed}: se voltea el ${cardName(k)} y el caballo de ${suitOf(k.suit).name.toLowerCase()} retrocede.`);
     moveHorses();renderLog();
-    await sleep(550);if(my!==token)return;
+    await w(550);if(my!==token)return;
   }
-  busy=false;$('draw').disabled=false;
+  busy=false;sync();
   if(deck.length)preload(src(deck[deck.length-1]));
-  if(auto)setTimeout(()=>{if(my===token)draw();},300);
+  if(auto)setTimeout(()=>{if(my===token)draw();},300*f);
 }
 function finish(suit){
-  over=true;setAuto(false);
+  over=true;auto=false;
   horseEls[suit].classList.add('win');
   const s=suitOf(suit);
   players.forEach(p=>{p.delta=p.horse===suit?p.bet*PAYOUT:-p.bet;chips[p.name]=getChips(p.name)+p.delta;});
@@ -306,8 +345,8 @@ function finish(suit){
   b.textContent=`Gana el caballo de ${s.name.toLowerCase()}. ${w.length?'Cobra: '+w.join(', ')+'.':'Nadie había apostado por él.'}`;
   b.hidden=false;
   say(`El caballo de ${s.name.toLowerCase()} cruza la meta.`);
-  $('draw').disabled=true;$('auto').disabled=true;$('again').hidden=false;
-  renderBets();renderLog();
+  $('auto').disabled=true;$('again').hidden=false;
+  sync();renderBets();renderLog();
 }
 function renderBets(){
   $('bets').innerHTML=players.map(p=>{
@@ -319,10 +358,12 @@ function renderBets(){
 function renderLog(){$('log').innerHTML=log.map(t=>`<li>${esc(t)}</li>`).join('');}
 
 $('start').onclick=startGame;
-$('draw').onclick=draw;
+$('deck').onclick=()=>{if(!auto)draw();};
 $('again').onclick=newRace;
 $('auto').onclick=()=>setAuto(!auto);
-$('back').onclick=()=>{token++;busy=false;setAuto(false);$('game').hidden=true;$('setup').hidden=false;document.body.classList.remove('playing');};
+$('spd').onchange=e=>{cfg.speed=e.target.value;};
+$('back').onclick=()=>{token++;busy=false;auto=false;repaint.forEach(f=>f());$('rowSpeed').hidden=!cfg.auto;$('game').hidden=true;$('setup').hidden=false;document.body.classList.remove('playing');};
+$('credBtn').onclick=()=>$('cred').showModal();
 renderSetup();
 </script>
 </body>
