@@ -88,7 +88,7 @@
   const MODOS = {
     rapida: {
       nombre: 'Partida rápida',
-      reglas: 'Corren los cuatro caballos por una pista de 6 pasos. Cada jugador apuesta fichas a un palo: el ganador paga el triple.'
+      reglas: 'Corren los cuatro caballos por una pista de 6 pasos. Sin jugadores ni apuestas: elige manual o automático y a correr.'
     },
     uno: {
       nombre: '1 contra 1',
@@ -330,7 +330,7 @@
     $('filaRondas').hidden = S.modo !== 'campeonato';
     $('add').hidden = S.modo === 'uno' && !S.sala;
     // Partida rápida: sin jugadores ni ajustes, solo elegir manual o automático.
-    const rap = S.modo === 'rapida' && !S.sala;
+    const rap = S.modo === 'rapida';
     ['cfgJugTitulo', 'rows', 'cfgBloque', 'cfgAcciones'].forEach(id => { $(id).hidden = rap; });
     $('rapidaBox').hidden = !rap;
     [
@@ -387,6 +387,7 @@
     $('cartel').hidden = true;
     $('last').innerHTML = '<div class="slot">Aún no ha salido ninguna carta</div>';
     $('tituloLista').textContent = S.camp ? `Marcador, ronda ${S.ronda + 1} de ${S.camp.rondas}` : 'Apuestas';
+    $('tituloLista').hidden = $('bets').hidden = S.modo === 'rapida';
     construirPista(); pintarLista(); pintarLog(); sync();
     preload(src(carrera.mazo[carrera.mazo.length - 1])); calentar(carrera.mazo);
     if (ajustes.auto) { const mi = token; setTimeout(() => { if (mi === token && fase === 'corriendo') setAuto(true); }, 1500); }
@@ -520,7 +521,7 @@
   }
 
   function liquidarFichas(ganador) {
-    if (S.camp || ganadorLiquidado) return;
+    if (S.camp || S.modo === 'rapida' || ganadorLiquidado) return;
     ganadorLiquidado = true;
     S.partida.forEach(p => {
       p.delta = p.palo === ganador ? p.apuesta * PAGO : -p.apuesta;
@@ -530,13 +531,13 @@
   }
 
   /* ---------- carteles ---------- */
-  const quienes = palo => S.partida.filter(p => p.palo === palo).map(p => p.nombre);
+  const quienes = palo => (S.modo === 'rapida' ? [] : S.partida.filter(p => p.palo === palo).map(p => p.nombre));
   function cartelGanador() {
     fase = 'ganador'; auto = false; sync();
     const g = carrera.ganador, cobran = quienes(g);
     $('cartel').innerHTML = `
       <h2>Gana el caballo de ${minus(g)}</h2>
-      <p>${cobran.length ? (S.modo === 'campeonato' ? 'Va con ' : 'Cobra: ') + esc(cobran.join(', ')) + '.' : 'Nadie había apostado por él.'}</p>
+      <p>${S.modo === 'rapida' ? '' : cobran.length ? (S.modo === 'campeonato' ? 'Va con ' : 'Cobra: ') + esc(cobran.join(', ')) + '.' : 'Nadie había apostado por él.'}</p>
       <div class="acciones-fila">
         <button id="cSeguir">Seguir hasta que lleguen todos</button>
         <button id="cRevancha" class="ghost">Revancha</button>

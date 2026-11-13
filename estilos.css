@@ -273,3 +273,59 @@ body.playing{padding:8px 10px 10px}
 
 .cartel{position:fixed;left:50%;bottom:10px;width:min(700px,calc(100% - 20px));max-height:72dvh;overflow-x:hidden;overflow-y:auto;z-index:30;margin:0;transform:translateX(-50%);animation:cartelf .6s cubic-bezier(.2,1.4,.4,1) both}
 @keyframes cartelf{from{opacity:0;transform:translateX(-50%) translateY(40px) scale(.9)}to{opacity:1;transform:translateX(-50%)}}
+
+.bets:empty{display:none}
+
+/* ===== v4: móvil en vertical = pista vertical (los caballos bajan hacia la meta), mazo abajo al alcance del pulgar ===== */
+@media (max-width:700px) and (orientation:portrait){
+  .playing main{display:flex;flex-direction:column;min-height:calc(100dvh - 18px)}
+  #vJuego{flex:1;min-height:0;display:flex;flex-direction:column}
+  #vJuego .panel.plano{flex:1;min-height:0;container-type:size;padding:4px}
+  .track{height:100%;min-width:0;grid-auto-flow:column;
+    grid-template-columns:24px repeat(var(--lanes),minmax(0,1fr)) 40px!important;
+    grid-template-rows:auto repeat(var(--n),minmax(0,1fr))!important;
+    --cw:max(14px,min(80px,calc((100cqw - 70px)/var(--lanes) - 10px),calc((100cqh - 50px)/var(--n)/1.526 - 3px)))}
+  .cell,.cell.chk{min-height:0;padding:2px 0;min-width:0;border-left:0;border-top:1px dashed rgba(255,255,255,.16)}
+  .cell.start{border-top:0}
+  .cell.meta{border-top:4px solid var(--gold);background:repeating-conic-gradient(rgba(255,255,255,.2) 0 25%,transparent 0 50%) 0 0/18px 18px,linear-gradient(180deg,rgba(240,196,83,.22),transparent)}
+  .lane-label{border-top:0;padding:2px 0}
+  .lane-label .mini{width:22px}
+  .th{writing-mode:vertical-rl;padding:0;font-size:.5rem;letter-spacing:.2em}
+  .chk .fc{--w:min(calc(var(--cw)*.78),34px)}
+
+  #vJuego .table-row{--dk:clamp(60px,10dvh,92px);flex:none;display:grid;grid-template-columns:auto auto 1fr;gap:6px 12px;align-items:center;margin:0}
+  .side{display:contents}
+  .side h2{display:none}
+  .stack{grid-row:1;font-size:.55rem}
+  .side .acciones-fila{grid-column:3;grid-row:1;flex-direction:column;align-items:stretch;gap:6px}
+  .side .acciones-fila button,.side .acciones-fila select{width:100%;padding:.65em .5em;font-size:.88rem}
+  .bets{grid-column:1/-1;grid-row:2;display:flex;flex-wrap:wrap;gap:4px;margin:0}
+  .bets li{border:0;background:rgba(0,0,0,.4);border-radius:99px;padding:3px 9px;gap:6px}
+  .bets li>span:nth-child(2){display:none}
+  .bets .chips{margin-left:0;font-size:.74rem}
+  #log{grid-column:1/-1;grid-row:3;margin:0;font-size:.78rem}
+  #log li:nth-child(n+2){display:none}
+}
+
+/* ===== móvil apaisado: pista a la izquierda, mazo y botones en columna a la derecha ===== */
+@media (orientation:landscape) and (max-height:520px){
+  body.playing{padding:6px 8px}
+  .playing main{display:flex;flex-direction:column;min-height:calc(100dvh - 12px)}
+  .playing .top{margin-bottom:4px}
+  #vJuego{flex:1;min-height:0;display:flex;flex-direction:row;gap:8px}
+  #vJuego .barra-sala{display:none}
+  #vJuego .panel.plano{flex:1;min-width:0;min-height:0;container-type:size;margin:0}
+  .track{height:100%;--cw:max(14px,min(80px,calc((100cqw - 56px)/var(--n) - 6px),calc(((100cqh - 26px)/(var(--lanes) + .8) - 8px)/1.526)))}
+  #vJuego .table-row{--dk:clamp(54px,22dvh,84px);flex:none;width:176px;margin:0;display:grid;grid-template-columns:auto auto;gap:6px;align-content:start;overflow:auto}
+  .side{display:contents}
+  .side h2{display:none}
+  .stack{font-size:.5rem}
+  .side .acciones-fila{grid-column:1/-1;flex-direction:column;align-items:stretch;gap:6px}
+  .side .acciones-fila button,.side .acciones-fila select{width:100%;padding:.5em;font-size:.82rem}
+  .bets{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px;margin:0}
+  .bets li{border:0;background:rgba(0,0,0,.4);border-radius:99px;padding:2px 8px;gap:6px}
+  .bets li>span:nth-child(2){display:none}
+  .bets .chips{margin-left:0;font-size:.7rem}
+  #log{grid-column:1/-1;margin:0;font-size:.7rem}
+  #log li:nth-child(n+2){display:none}
+}
