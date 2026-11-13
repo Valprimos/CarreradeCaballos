@@ -11,6 +11,7 @@
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const minus = id => paloDe(id).nombre.toLowerCase();
+  const mini = id => `<img class="mini" src="${id}/card_${paloDe(id).archivo}_01.webp" alt="">`;
   const src = c => `${c.palo}/card_${paloDe(c.palo).archivo}_${String(c.valor).padStart(2, '0')}.webp`;
   const BACK = 'dorso/card_back.webp';
   const RM = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion:reduce)').matches;
@@ -219,7 +220,7 @@
   function abanico() {
     const f = $('fan'); f.innerHTML = '';
     PALOS.forEach((p, i) => {
-      const el = fc({ palo: p.id, valor: 11 }, { w: 104 });
+      const el = fc({ palo: p.id, valor: 11 });
       f.appendChild(el); setTimeout(() => el.classList.add('up'), 250 + i * 180);
     });
   }
@@ -328,6 +329,10 @@
     $('filaPasos').hidden = !(S.modo === 'personalizada' || S.modo === 'campeonato');
     $('filaRondas').hidden = S.modo !== 'campeonato';
     $('add').hidden = S.modo === 'uno' && !S.sala;
+    // Partida rápida: sin jugadores ni ajustes, solo elegir manual o automático.
+    const rap = S.modo === 'rapida' && !S.sala;
+    ['cfgJugTitulo', 'rows', 'cfgBloque', 'cfgAcciones'].forEach(id => { $(id).hidden = rap; });
+    $('rapidaBox').hidden = !rap;
     [
       seg('segMode', [['m', 'Manual'], ['a', 'Automático']], () => (ajustes.auto ? 'a' : 'm'),
         v => { ajustes.auto = v === 'a'; $('rowSpeed').hidden = !ajustes.auto; guardarAjustes(); }),
@@ -390,16 +395,16 @@
   /* ---------- pista ---------- */
   function construirPista() {
     const T = $('track'), meta = carrera.meta, palos = carrera.palos;
-    T.style.gridTemplateColumns = `104px repeat(${meta + 1},minmax(72px,1fr))`;
-    T.style.minWidth = (104 + (meta + 1) * 72) + 'px';
+    T.style.gridTemplateColumns = `40px repeat(${meta + 1},minmax(0,1fr))`;
+    T.style.setProperty('--n', meta + 1); T.style.setProperty('--lanes', palos.length);
     let h = '<div></div>';
     for (let c = 0; c <= meta; c++) h += `<div class="th">${c === 0 ? 'Salida' : c === meta ? 'Meta' : ''}</div>`;
     palos.forEach((id, i) => {
       const p = paloDe(id), b = i % 2 ? '' : ' l1';
-      h += `<div class="lane-label${b}"><span class="dot" style="--cl:${p.color}"></span>${p.nombre}</div>`;
+      h += `<div class="lane-label${b}" title="${p.nombre}">${mini(p.id)}</div>`;
       for (let c = 0; c <= meta; c++) h += `<div class="cell${b}${c === 0 ? ' start' : ''}${c === meta ? ' meta' : ''}" data-l="${id}" data-c="${c}"></div>`;
     });
-    h += '<div class="lane-label small">Controles</div>';
+    h += '<div class="lane-label small"></div>';
     for (let c = 0; c <= meta; c++) h += `<div class="cell chk" data-k="${c}"></div>`;
     T.innerHTML = h;
     horseEls = {};
@@ -434,10 +439,10 @@
       if (S.camp) {
         const total = S.camp.puntosDe(p), ult = S.camp.ultimaRonda[p.palo];
         const extra = fase === 'fin' && ult !== undefined ? `<span class="delta pos">+${ult}</span>` : '';
-        return `<li><span class="dot" style="--cl:${pal.color}"></span><span>${esc(p.nombre)} con ${pal.nombre.toLowerCase()}</span><span class="chips">${total} puntos${extra}</span></li>`;
+        return `<li>${mini(pal.id)}<span>${esc(p.nombre)} con ${pal.nombre.toLowerCase()}</span><span class="chips">${total} puntos${extra}</span></li>`;
       }
       const d = p.delta !== undefined ? `<span class="delta ${p.delta > 0 ? 'pos' : 'neg'}">${p.delta > 0 ? '+' : ''}${p.delta}</span>` : '';
-      return `<li><span class="dot" style="--cl:${pal.color}"></span><span>${esc(p.nombre)} apuesta ${p.apuesta} a ${pal.nombre.toLowerCase()}</span><span class="chips">${getFichas(p.nombre)} fichas${d}</span></li>`;
+      return `<li>${mini(pal.id)}<span>${esc(p.nombre)} apuesta ${p.apuesta} a ${pal.nombre.toLowerCase()}</span><span class="chips">${getFichas(p.nombre)} fichas${d}</span></li>`;
     }).join('');
   }
   const decir = t => { log.unshift(t); if (log.length > 6) log.pop(); };
@@ -466,7 +471,7 @@
     const r = carrera.jugarTurno();
     if (r.mazoReciclado) decir('Se acaba el mazo: se baraja el descarte.');
     sync();
-    const el = fc(r.carta, { w: 150, cls: 'deal' });
+    const el = fc(r.carta, { cls: 'deal' });
     $('last').replaceChildren(el);
     await preload(src(r.carta)); if (mi !== token) return;
     el.classList.add('up');
@@ -545,11 +550,11 @@
     const filas = carrera.clasificacion.map((p, i) => {
       const pts = S.camp ? `<span class="pts">+${S.camp.ultimaRonda[p]} pts</span>` : '';
       const q = quienes(p);
-      return `<li><span class="n">${i + 1}.º</span><span class="dot" style="--cl:${paloDe(p).color}"></span>${paloDe(p).nombre}${q.length ? `<span class="quien">${esc(q.join(', '))}</span>` : ''}${pts}</li>`;
+      return `<li><span class="n">${i + 1}.º</span>${mini(paloDe(p).id)}${paloDe(p).nombre}${q.length ? `<span class="quien">${esc(q.join(', '))}</span>` : ''}${pts}</li>`;
     });
     carrera.descolgados.forEach(p => {
       const q = quienes(p);
-      filas.push(`<li><span class="n">—</span><span class="dot" style="--cl:${paloDe(p).color}"></span>${paloDe(p).nombre}${q.length ? `<span class="quien">${esc(q.join(', '))}</span>` : ''}<span class="pts">No llegó</span></li>`);
+      filas.push(`<li><span class="n">—</span>${mini(paloDe(p).id)}${paloDe(p).nombre}${q.length ? `<span class="quien">${esc(q.join(', '))}</span>` : ''}<span class="pts">No llegó</span></li>`);
     });
     return `<ol class="clasif">${filas.join('')}</ol>`;
   }
@@ -562,7 +567,7 @@
     let html;
     if (S.camp) {
       const c = S.camp, ultima = c.terminado;
-      const marcador = `<ol class="clasif">${c.clasificacion.map((j, i) => `<li><span class="n">${i + 1}.º</span><span class="dot" style="--cl:${paloDe(j.palo).color}"></span>${esc(j.nombre)}<span class="quien">${paloDe(j.palo).nombre}</span><span class="pts">${c.puntosDe(j)} pts</span></li>`).join('')}</ol>`;
+      const marcador = `<ol class="clasif">${c.clasificacion.map((j, i) => `<li><span class="n">${i + 1}.º</span>${mini(paloDe(j.palo).id)}${esc(j.nombre)}<span class="quien">${paloDe(j.palo).nombre}</span><span class="pts">${c.puntosDe(j)} pts</span></li>`).join('')}</ol>`;
       html = `<h2>${ultima ? 'Campeonato terminado' : `Fin de la ronda ${c.rondasCorridas.length} de ${c.rondas}`}</h2>`
         + (ultima ? `<p><b>${c.campeones.length > 1 ? 'Campeones' : 'Campeón'}: ${esc(c.campeones.map(j => j.nombre).join(', '))}</b></p>` : '')
         + `<h3>Llegada de esta ronda</h3>${sinGanador ? '<p>Ningún caballo pudo llegar a la meta.</p>' : ''}${listaClasificacion()}<h3 style="margin-top:12px">Marcador</h3>${marcador}`
@@ -645,6 +650,8 @@
     }
   };
   $('start').onclick = empezar;
+  $('rapManual').onclick = () => { ajustes.auto = false; guardarAjustes(); empezar(); };
+  $('rapAuto').onclick = () => { ajustes.auto = true; guardarAjustes(); empezar(); };
 
   $('deck').onclick = () => {
     if (auto) return;

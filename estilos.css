@@ -227,3 +227,49 @@ button.link{background:none;box-shadow:none;color:var(--muted);font:400 .85rem v
   .panel{padding:16px;border-radius:16px}
 }
 @media (prefers-reduced-motion:reduce){:root{--flip:.01s}*{animation:none!important;transition:none!important}}
+
+/* ===== v3: cartas protagonistas, todo en una pantalla ===== */
+.hero{flex-direction:column;text-align:center;gap:14px;margin-bottom:26px}
+.hero p{margin:0 auto}
+.fan{justify-content:center;padding:10px 0 16px}
+.fan .fc{--w:clamp(88px,24vw,160px);margin-left:calc(var(--w)*-.4)}
+.fan .fc:first-child{margin-left:0}
+.mini{width:30px;height:auto;aspect-ratio:var(--ratio);border-radius:4px;display:block;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.6)}
+li .mini{width:22px;flex:none}
+.rapida-box{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+.gran{padding:1.5em 1em;font:700 1.45rem var(--display)}
+.gran small{display:block;font:500 .8rem var(--sans);opacity:.8;margin-top:6px;letter-spacing:0}
+
+body.playing{padding:8px 10px 10px}
+.playing .top{margin-bottom:6px;min-height:34px}
+.playing .foot{display:none}
+.playing .panel{padding:8px;margin-bottom:8px;border-radius:14px}
+.playing .barra-sala{padding:6px 12px;margin-bottom:8px}
+.panel.plano{container-type:inline-size;padding:4px 6px;overflow:visible}
+.scroller{overflow:visible}
+.track{--cw:max(14px,min(92px,calc((100cqw - 56px)/var(--n) - 6px),calc((100dvh - 330px - var(--lanes)*10px)/(1.526*(var(--lanes) + .8)))))}
+.horse{--w:var(--cw)}
+.chk .fc{--w:calc(var(--cw)*.78)}
+.cell{min-height:calc(var(--cw)*1.526 + 8px);padding:3px 0}
+.cell.chk{min-height:calc(var(--cw)*1.19 + 6px)}
+.lane-label{position:static;background:none!important;justify-content:center;padding:0}
+.th{font-size:.58rem;letter-spacing:.08em;padding:4px 0;overflow:hidden;white-space:nowrap}
+.puesto{top:2px;right:2px;font-size:.7rem;padding:.05em .45em}
+
+.table-row{--dk:clamp(70px,13dvh,128px);gap:14px;flex-wrap:nowrap;align-items:flex-start}
+.pile{width:auto}
+.pile .fc,#last .fc{--w:var(--dk)}
+.slot{width:var(--dk);font-size:.7rem;padding:6px}
+.stack{gap:8px;font-size:.62rem;flex:none}
+.side{flex:1 1 0;min-width:0}
+.side h2{font-size:1rem;margin-bottom:4px}
+.bets{margin-bottom:8px;font-size:.82rem}
+.bets li{padding:4px 0;gap:8px}
+.bets .chips{font-size:.85rem}
+.side .acciones-fila{gap:8px;margin-top:0}
+.side button{padding:.45em .9em;font-size:.88rem}
+#log{min-height:0;font-size:.8rem;margin-top:8px}
+#log li:nth-child(n+3){display:none}
+
+.cartel{position:fixed;left:50%;bottom:10px;width:min(700px,calc(100% - 20px));max-height:72dvh;overflow-x:hidden;overflow-y:auto;z-index:30;margin:0;transform:translateX(-50%);animation:cartelf .6s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes cartelf{from{opacity:0;transform:translateX(-50%) translateY(40px) scale(.9)}to{opacity:1;transform:translateX(-50%)}}

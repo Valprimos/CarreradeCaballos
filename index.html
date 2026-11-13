@@ -57,20 +57,19 @@
 
 <main id="app">
   <div class="top">
-    <button id="btnMenu" class="ghost chico" hidden>Menú principal</button>
-    <span class="marca" id="marca">Carrera de caballos</span>
     <div class="acciones"><button id="btnAjustes" class="ghost chico">Ajustes</button></div>
+    <span class="marca" id="marca">Carrera de caballos</span>
+    <button id="btnMenu" class="ghost chico" hidden>Menú principal</button>
   </div>
 
   <!-- ===== MENÚ ===== -->
   <section id="vMenu">
     <header class="hero">
-      <div>
-        <span class="kicker">Baraja española</span>
-        <h1>Carrera de caballos</h1>
-        <p>La carrera con baraja española: cuatro caballos, una pista de cartas boca abajo y fichas para apostar.</p>
-      </div>
       <div class="fan" id="fan" aria-hidden="true"></div>
+      <div>
+        <h1>Carrera de caballos</h1>
+        <p>Cuatro caballos, una pista de cartas boca abajo y fichas para apostar.</p>
+      </div>
     </header>
 
     <div class="modos">
@@ -172,7 +171,14 @@
       <p class="nota" id="cfgReglas" style="margin:0 0 12px"></p>
       <h3 id="cfgJugTitulo">Jugadores y apuestas</h3>
       <div id="rows"></div>
-      <div class="cfg">
+      <div id="rapidaBox" hidden>
+        <h3>¿Cómo quieres jugar?</h3>
+        <div class="rapida-box">
+          <button id="rapManual" class="gran">Manual<small>Tú destapas cada carta</small></button>
+          <button id="rapAuto" class="gran rojo">Automático<small>La carrera corre sola</small></button>
+        </div>
+      </div>
+      <div class="cfg" id="cfgBloque">
         <div class="cfgrow" id="filaPasos" hidden><span>Pista</span>
           <input type="range" id="inPasos" min="2" max="12" step="1" aria-label="Largo de la pista"><span class="valor" id="inPasosV"></span>
           <span class="nota" style="margin:0">cartas boca abajo</span>
@@ -183,7 +189,7 @@
         <div class="cfgrow"><span>Modo</span><div class="seg" id="segMode" role="radiogroup" aria-label="Modo de juego"></div></div>
         <div class="cfgrow" id="rowSpeed" hidden><span>Velocidad</span><div class="seg" id="segSpeed" role="radiogroup" aria-label="Velocidad"></div></div>
       </div>
-      <div class="acciones-fila">
+      <div class="acciones-fila" id="cfgAcciones">
         <button id="add" class="ghost">Añadir jugador</button>
         <button id="start" class="rojo">Empezar carrera</button>
       </div>
@@ -216,9 +222,9 @@
           <select id="spd" aria-label="Velocidad" hidden><option value="lenta">Lenta</option><option value="normal">Normal</option><option value="rapida">Rápida</option></select>
           <button id="salir" class="ghost">Salir de la mesa</button>
         </div>
+        <ul id="log"></ul>
       </div>
     </div>
-    <div class="panel"><h2>Crónica</h2><ul id="log"></ul></div>
   </section>
 
   <footer class="foot"><button type="button" class="link" id="credBtn">Créditos</button></footer>
