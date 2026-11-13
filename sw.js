@@ -1,5 +1,5 @@
 /* Modo sin conexión. Sube el número de VERSION cuando cambies cualquier fichero. */
-const VERSION = 'carrera-v1';
+const VERSION = 'carrera-v2';
 const NUCLEO = [
   "./",
   "index.html",
