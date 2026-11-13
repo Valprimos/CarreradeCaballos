@@ -82,7 +82,7 @@
   const guardarJugadores = () => LS.set('carrera_jugadores', S.jugadores);
 
   let carrera = null, fase = 'corriendo', busy = false, auto = false, seguir = false, token = 0, ganadorLiquidado = false, espera = false;
-  let horseEls = {}, chkEls = [], log = [];
+  let horseEls = {}, chkEls = [], log = [], hist = [], turnoN = 0;
   let vista = 'menu';
 
   const MODOS = {
@@ -157,11 +157,8 @@
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && vista === 'juego') pedirPantalla(); });
 
   /* ---------- vistas ---------- */
-  let rotarCerrado = false;
+  let avisoRotar = false;
   const mqVertical = typeof matchMedia === 'function' ? matchMedia('(max-width:700px) and (orientation:portrait)') : null;
-  function actualizarRotar() {
-    $('rotar').hidden = !(mqVertical && mqVertical.matches && !rotarCerrado && (vista === 'config' || vista === 'juego'));
-  }
   const VISTAS = { menu: 'vMenu', amigos: 'vAmigos', pers: 'vPers', config: 'vConfig', juego: 'vJuego' };
   function ir(v) {
     vista = v;
@@ -170,7 +167,9 @@
     $('marca').hidden = v === 'menu';
     document.body.classList.toggle('playing', v === 'juego');
     if (v === 'juego') pedirPantalla(); else soltarPantalla();
-    actualizarBarras(); actualizarRotar();
+    actualizarBarras();
+    // Sugerencia puntual (no permanente) para pantallas verticales.
+    if (v === 'juego' && mqVertical && mqVertical.matches && !avisoRotar) { avisoRotar = true; avisar('Con el móvil en horizontal la carrera se ve más grande.'); }
     window.scrollTo(0, 0);
   }
   const enMarcha = () => vista === 'juego' && !!carrera && (fase !== 'fin' || (S.camp && !S.camp.terminado));
@@ -382,6 +381,7 @@
   function nuevaCarrera() {
     token++; busy = false; auto = false; fase = 'corriendo';
     seguir = S.modo === 'campeonato'; ganadorLiquidado = false;
+    hist = []; turnoN = 0;
     espera = ajustes.auto;   // en automático, la carrera no arranca hasta pulsar Empezar
     carrera = new Carrera({
       pasos: pasosEfectivos(),
@@ -477,6 +477,7 @@
     if (!RM) document.documentElement.style.setProperty('--flip', (.75 * f) + 's');
 
     const r = carrera.jugarTurno();
+    registrarTurno(r);
     if (r.mazoReciclado) decir('Se acaba el mazo: se baraja el descarte.');
     sync();
     const el = fc(r.carta, { cls: 'deal' });
@@ -525,6 +526,24 @@
     sync();
     if (carrera.mazo.length) preload(src(carrera.mazo[carrera.mazo.length - 1]));
     if (auto) setTimeout(() => { if (mi === token) sacar(); }, 800 * f);
+  }
+
+  /* historial resumido: una línea por carta, lo más reciente arriba */
+  function registrarTurno(r) {
+    turnoN++;
+    const subs = [];
+    if (r.mazoReciclado) subs.push('Se baraja el descarte.');
+    if (r.llegada) subs.push(`El caballo de ${minus(r.llegada)} llega en ${carrera.clasificacion.indexOf(r.llegada) + 1}.º lugar.`);
+    r.revelaciones.forEach(rev => subs.push(`Control ${rev.paso} (${nombreCarta(rev.carta)}): ${rev.retrocede ? minus(rev.retrocede) + ' retrocede' : 'sin efecto'}.`));
+    hist.push({ n: turnoN, palo: r.carta.palo, main: `${nombreCarta(r.carta)}: ${r.avanza ? minus(r.avanza) + ' avanza' : 'sin efecto'}`, subs, llega: !!r.llegada });
+  }
+  function abrirHistorial() {
+    $('histSala').hidden = !S.sala;
+    if (S.sala) $('histSala').textContent = 'Sala ' + codigoLegible(S.sala);
+    $('histLista').innerHTML = hist.length
+      ? hist.slice().reverse().map(e => `<li class="${e.llega ? 'llega' : ''}"><span class="n">${e.n}</span>${mini(e.palo)}<div>${esc(e.main)}${e.subs.map(t => `<span class="sub">${esc(t)}</span>`).join('')}</div></li>`).join('')
+      : '<li>Aún no ha salido ninguna carta.</li>';
+    $('dHist').showModal();
   }
 
   function liquidarFichas(ganador) {
@@ -666,6 +685,7 @@
     if (ajustes.vibracion && navigator.vibrate) navigator.vibrate(25);
     sacar();
   };
+  $('btnHist').onclick = abrirHistorial;
   $('auto').onclick = () => { if (espera) { espera = false; setAuto(true); } else setAuto(!auto); };
   $('spd').onchange = e => { ajustes.velocidad = e.target.value; guardarAjustes(); };
   $('salir').onclick = async () => {
@@ -696,8 +716,6 @@
     }
   };
   $('credBtn').onclick = () => $('cred').showModal();
-  $('rotarOk').onclick = () => { rotarCerrado = true; actualizarRotar(); };
-  if (mqVertical) { if (mqVertical.addEventListener) mqVertical.addEventListener('change', actualizarRotar); else if (mqVertical.addListener) mqVertical.addListener(actualizarRotar); }
 
   /* ---------- arranque ---------- */
   aplicarTema();

@@ -62,11 +62,6 @@
     <button id="btnMenu" class="ghost chico" hidden>Menú principal</button>
   </div>
 
-  <div id="rotar" class="rotar" hidden>
-    <span>Para ver mejor la carrera, pon el móvil en horizontal.</span>
-    <button id="rotarOk" class="ghost chico">Seguir en vertical</button>
-  </div>
-
   <!-- ===== MENÚ ===== -->
   <section id="vMenu">
     <header class="hero">
@@ -225,7 +220,8 @@
         <div class="acciones-fila" style="margin-top:0">
           <button id="auto" class="ghost" aria-pressed="false">Automático</button>
           <select id="spd" aria-label="Velocidad" hidden><option value="lenta">Lenta</option><option value="normal">Normal</option><option value="rapida">Rápida</option></select>
-          <button id="salir" class="ghost">Salir de la mesa</button>
+          <button id="btnHist" class="ghost">Historial</button>
+          <button id="salir" class="ghost">Salir</button>
         </div>
         <ul id="log"></ul>
       </div>
@@ -272,6 +268,13 @@
   <p>Licencia: <a href="https://creativecommons.org/licenses/by-sa/3.0/deed.es" rel="noopener">Creative Commons Atribución-CompartirIgual 3.0 (CC BY-SA 3.0)</a>. Las cartas (SVG y WebP) de las carpetas <code>oros</code>, <code>copas</code>, <code>espadas</code>, <code>bastos</code> y <code>dorso</code> se distribuyen bajo esa misma licencia.</p>
   <p>Las imágenes se han adaptado para utilizar únicamente una baraja de 40 cartas (sin los ochos ni los nueves). Las ilustraciones no se han modificado: el juego las muestra como imágenes WebP renderizadas a partir de los SVG originales, que también se incluyen en cada carpeta. Los dorsos de colores se obtienen aplicando un filtro de color en pantalla.</p>
   <p>Las reglas, los modos de juego, el campeonato y las salas por código se basan en la versión Flutter de <a href="https://github.com/Danielgrs18/CarreraDeCaballos" rel="noopener">Danielgrs18/CarreraDeCaballos</a>.</p>
+  <form method="dialog"><button class="ghost">Cerrar</button></form>
+</dialog>
+
+<dialog id="dHist" aria-labelledby="histT">
+  <h2 id="histT">Historial</h2>
+  <p id="histSala" hidden></p>
+  <ol id="histLista" class="hist"></ol>
   <form method="dialog"><button class="ghost">Cerrar</button></form>
 </dialog>
 
