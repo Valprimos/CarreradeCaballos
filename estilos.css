@@ -395,3 +395,24 @@ body.playing{display:flex;flex-direction:column;min-height:100dvh;
   #vAmigos .panel{margin-bottom:0}
   .opciones{margin-bottom:10px}
 }
+
+/* ===== v7: menú en horizontal como en ordenador, mazo más pequeño ===== */
+.hist .mini{width:34px}
+@media (orientation:landscape){
+  #vJuego .table-row{--dk:clamp(40px,11dvh,78px);width:clamp(132px,16vw,210px)}
+}
+@media (max-width:700px) and (orientation:portrait){
+  #vJuego .table-row{--dk:clamp(38px,6dvh,54px)}
+}
+@media (orientation:landscape) and (max-height:620px){
+  #vMenu:not([hidden]){display:block}
+  #vMenu .hero{grid-row:auto;margin:0 0 10px;gap:4px}
+  .fan{padding:2px 0 4px}
+  .fan .fc{--w:clamp(44px,7.5vw,62px)}
+  h1{font-size:clamp(1.5rem,6vh,2rem)}
+  #vMenu .modos{grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px}
+  #vMenu .modo{padding:10px}
+  .modo b{font-size:.95rem}
+  .modo span.desc{font-size:.68rem}
+  #vMenu .enlaces-pie{grid-column:auto;justify-content:center}
+}

@@ -70,16 +70,13 @@
     // partida en curso
     partida: [], par: ['oros', 'copas'], semillaBase: nuevaSemilla(), ronda: 0, camp: null
   };
-  {
-    const guardados = LS.get('carrera_jugadores', null);
-    if (Array.isArray(guardados) && guardados.length) {
-      const ok = guardados.slice(0, LIMITES.jugadores.max)
-        .filter(j => j && IDS.includes(j.palo))
-        .map((j, i) => ({ nombre: String(j.nombre || '').slice(0, 14) || 'Jugador ' + (i + 1), palo: j.palo, apuesta: [5, 10, 20].includes(j.apuesta) ? j.apuesta : 10 }));
-      if (ok.length) S.jugadores = ok;
-    }
-  }
-  const guardarJugadores = () => LS.set('carrera_jugadores', S.jugadores);
+  const limpiarJug = arr => (Array.isArray(arr) ? arr : []).slice(0, LIMITES.jugadores.max)
+    .filter(j => j && IDS.includes(j.palo))
+    .map((j, i) => ({ nombre: String(j.nombre || '').slice(0, 14) || 'Jugador ' + (i + 1), palo: j.palo, apuesta: [5, 10, 20].includes(j.apuesta) ? j.apuesta : 10 }));
+  { const o = limpiarJug(LS.get('carrera_jugadores', null)); if (o.length) S.jugadores = o; }
+  const listas = { otros: S.jugadores, pers: limpiarJug(LS.get('carrera_jugadores_pers', null)) };
+  const claveLista = () => (S.modo === 'personalizada' ? 'pers' : 'otros');
+  const guardarJugadores = () => { LS.set('carrera_jugadores', listas.otros); LS.set('carrera_jugadores_pers', listas.pers); };
 
   let carrera = null, fase = 'corriendo', busy = false, auto = false, seguir = false, token = 0, ganadorLiquidado = false, espera = false;
   let horseEls = {}, chkEls = [], log = [], hist = [], turnoN = 0;
@@ -96,7 +93,7 @@
     },
     personalizada: {
       nombre: 'Partida personalizada',
-      reglas: 'Corren los cuatro caballos. Tú decides el largo de la pista y los jugadores; los palos pueden repetirse.'
+      reglas: 'Corren los cuatro caballos y tú decides el largo de la pista. Los jugadores y las apuestas son opcionales: puedes mirar la carrera sin apostar.'
     },
     campeonato: {
       nombre: 'Campeonato',
@@ -306,9 +303,10 @@
 
   /* ---------- preparar la mesa ---------- */
   const palosPermitidos = () => (S.modo === 'uno' && S.sala ? S.sala.palos : IDS);
-  const limitesJug = () => (S.modo === 'uno' ? [S.sala ? 1 : 2, 2] : [LIMITES.jugadores.min, LIMITES.jugadores.max]);
+  const limitesJug = () => (S.modo === 'uno' ? [S.sala ? 1 : 2, 2] : S.modo === 'personalizada' ? [0, LIMITES.jugadores.max] : [LIMITES.jugadores.min, LIMITES.jugadores.max]);
 
   function ajustarJugadores() {
+    S.jugadores = listas[claveLista()];
     const [min, max] = limitesJug();
     const permitidos = palosPermitidos();
     S.jugadores = S.jugadores.slice(0, max);
@@ -321,6 +319,7 @@
       const [a, b] = S.jugadores;
       if (a.palo === b.palo) b.palo = permitidos.find(p => p !== a.palo);
     }
+    listas[claveLista()] = S.jugadores;
   }
 
   /** modo = null conserva el actual (al entrar en una sala). */
@@ -329,23 +328,23 @@
     ajustarJugadores();
     $('cfgTitulo').textContent = MODOS[S.modo].nombre;
     $('cfgReglas').textContent = MODOS[S.modo].reglas;
-    $('cfgJugTitulo').textContent = S.modo === 'campeonato' ? 'Jugadores' : 'Jugadores y apuestas';
+    $('cfgJugTitulo').textContent = S.modo === 'campeonato' ? 'Jugadores' : S.modo === 'personalizada' ? 'Jugadores y apuestas (opcional)' : 'Jugadores y apuestas';
     $('filaPasos').hidden = !(S.modo === 'personalizada' || S.modo === 'campeonato');
     $('filaRondas').hidden = S.modo !== 'campeonato';
-    $('add').hidden = S.modo === 'uno' && !S.sala;
+    $('add').hidden = S.modo === 'rapida' || (S.modo === 'uno' && !S.sala);
     // Partida rápida: sin jugadores ni ajustes, solo elegir manual o automático.
     const rap = S.modo === 'rapida';
-    ['cfgJugTitulo', 'rows', 'cfgBloque', 'cfgAcciones'].forEach(id => { $(id).hidden = rap; });
-    $('rapidaBox').hidden = !rap;
+    ['cfgJugTitulo', 'rows'].forEach(id => { $(id).hidden = rap; });
+    $('rapidaBox').hidden = true;
     [
       seg('segMode', [['m', 'Manual'], ['a', 'Automático']], () => (ajustes.auto ? 'a' : 'm'),
-        v => { ajustes.auto = v === 'a'; $('rowSpeed').hidden = !ajustes.auto; guardarAjustes(); }),
+        v => { ajustes.auto = v === 'a'; guardarAjustes(); }),
       seg('segSpeed', [['lenta', 'Lenta'], ['normal', 'Normal'], ['rapida', 'Rápida']], () => ajustes.velocidad,
         v => { ajustes.velocidad = v; guardarAjustes(); }),
       rango('inPasos', 'inPasosV', () => S.pasos, v => { S.pasos = v; }, () => !!S.sala),
       rango('inRondas', 'inRondasV', () => S.rondas, v => { S.rondas = v; }, () => !!S.sala)
     ];
-    $('rowSpeed').hidden = !ajustes.auto;
+    $('rowSpeed').hidden = false;
     renderFilas();
     ir('config');
   }
@@ -393,7 +392,7 @@
     $('cartel').hidden = true;
     $('last').innerHTML = '<div class="slot">Aún no ha salido ninguna carta</div>';
     $('tituloLista').textContent = S.camp ? `Marcador, ronda ${S.ronda + 1} de ${S.camp.rondas}` : 'Apuestas';
-    $('tituloLista').hidden = $('bets').hidden = S.modo === 'rapida';
+    $('tituloLista').hidden = $('bets').hidden = S.modo === 'rapida' || !S.partida.length;
     construirPista(); pintarLista(); pintarLog(); sync();
     preload(src(carrera.mazo[carrera.mazo.length - 1])); calentar(carrera.mazo);
   }
@@ -473,7 +472,7 @@
   async function sacar() {
     if (busy || fase !== 'corriendo' || !carrera || carrera.agotada) return;
     busy = true; const mi = token;
-    const f = auto ? SPEEDS[ajustes.velocidad] : .9, w = ms => sleep(ms * f);
+    const f = SPEEDS[ajustes.velocidad] * (auto ? 1 : .65), w = ms => sleep(ms * f);
     if (!RM) document.documentElement.style.setProperty('--flip', (.75 * f) + 's');
 
     const r = carrera.jugarTurno();
@@ -535,13 +534,13 @@
     if (r.mazoReciclado) subs.push('Se baraja el descarte.');
     if (r.llegada) subs.push(`El caballo de ${minus(r.llegada)} llega en ${carrera.clasificacion.indexOf(r.llegada) + 1}.º lugar.`);
     r.revelaciones.forEach(rev => subs.push(`Control ${rev.paso} (${nombreCarta(rev.carta)}): ${rev.retrocede ? minus(rev.retrocede) + ' retrocede' : 'sin efecto'}.`));
-    hist.push({ n: turnoN, palo: r.carta.palo, main: `${nombreCarta(r.carta)}: ${r.avanza ? minus(r.avanza) + ' avanza' : 'sin efecto'}`, subs, llega: !!r.llegada });
+    hist.push({ n: turnoN, carta: r.carta, main: `${nombreCarta(r.carta)}: ${r.avanza ? minus(r.avanza) + ' avanza' : 'sin efecto'}`, subs, llega: !!r.llegada });
   }
   function abrirHistorial() {
     $('histSala').hidden = !S.sala;
     if (S.sala) $('histSala').textContent = 'Sala ' + codigoLegible(S.sala);
     $('histLista').innerHTML = hist.length
-      ? hist.slice().reverse().map(e => `<li class="${e.llega ? 'llega' : ''}"><span class="n">${e.n}</span>${mini(e.palo)}<div>${esc(e.main)}${e.subs.map(t => `<span class="sub">${esc(t)}</span>`).join('')}</div></li>`).join('')
+      ? hist.slice().reverse().map(e => `<li class="${e.llega ? 'llega' : ''}"><span class="n">${e.n}</span><img class="mini" src="${src(e.carta)}" alt="${esc(nombreCarta(e.carta))}"><div>${esc(e.main)}${e.subs.map(t => `<span class="sub">${esc(t)}</span>`).join('')}</div></li>`).join('')
       : '<li>Aún no ha salido ninguna carta.</li>';
     $('dHist').showModal();
   }
@@ -563,7 +562,7 @@
     const g = carrera.ganador, cobran = quienes(g);
     $('cartel').innerHTML = `
       <h2>Gana el caballo de ${minus(g)}</h2>
-      <p>${S.modo === 'rapida' ? '' : cobran.length ? (S.modo === 'campeonato' ? 'Va con ' : 'Cobra: ') + esc(cobran.join(', ')) + '.' : 'Nadie había apostado por él.'}</p>
+      <p>${S.modo === 'rapida' || !S.partida.length ? '' : cobran.length ? (S.modo === 'campeonato' ? 'Va con ' : 'Cobra: ') + esc(cobran.join(', ')) + '.' : 'Nadie había apostado por él.'}</p>
       <div class="acciones-fila">
         <button id="cSeguir">Seguir hasta que lleguen todos</button>
         <button id="cRevancha" class="ghost">Revancha</button>
