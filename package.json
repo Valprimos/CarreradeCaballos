@@ -1,0 +1,9 @@
+{
+  "name": "carrera-de-caballos",
+  "version": "2.0.0",
+  "description": "Carrera de caballos con baraja española para el navegador",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}

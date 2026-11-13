@@ -2,147 +2,205 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Carrera de caballos con baraja española</title>
-<style>
-:root{
-  --felt:#17452f; --felt-dark:#0d291d; --line:#2f7455; --brass:#e0b95f; --ink:#f3eedd; --muted:#a8c6b5;
-  --serif:"Palatino Linotype","Book Antiqua",Palatino,Georgia,serif;
-  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  --ratio:66.88/102.08; --flip:.75s;
-}
-*{box-sizing:border-box}
-html,body{margin:0}
-body{color:var(--ink);font:16px/1.5 var(--sans);min-height:100vh;padding:22px 14px 48px;
-  background:
-    radial-gradient(ellipse 90% 60% at 50% 0%,#1f5b3f 0%,transparent 70%),
-    repeating-linear-gradient(45deg,rgba(255,255,255,.018) 0 2px,transparent 2px 5px),
-    var(--felt-dark)}
-main{max-width:1020px;margin:0 auto}
-a{color:var(--brass)}
-h1{font:700 clamp(2.2rem,7vw,4rem)/1 var(--serif);margin:0 0 .25em;color:var(--brass);text-shadow:0 2px 0 rgba(0,0,0,.35)}
-h2{font:700 1.3rem var(--serif);margin:0 0 10px;color:var(--brass)}
-.hero{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:22px}
-.hero p{margin:0;color:var(--muted);max-width:46ch}
-.fan{display:flex;padding:14px 26px 14px 0}
-.fan .fc{margin-left:-34px;transform-origin:50% 120%}
-.fan .fc:nth-child(1){transform:rotate(-12deg)}.fan .fc:nth-child(2){transform:rotate(-4deg) translateY(-6px)}
-.fan .fc:nth-child(3){transform:rotate(4deg) translateY(-6px)}.fan .fc:nth-child(4){transform:rotate(12deg)}
-body.playing .fan{display:none}
-.panel{background:rgba(0,0,0,.24);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
-button,input,select{font:inherit}
-button{cursor:pointer;border:0;border-radius:8px;padding:.65em 1.2em;background:var(--brass);color:#2a2008;font-weight:700}
-button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
-button:disabled{opacity:.45;cursor:default}
-:is(button,input,select):focus-visible{outline:3px solid #fff;outline-offset:2px}
-input,select{background:#0a2017;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:.5em .7em}
-.prow{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
-.prow input{flex:1 1 140px;min-width:0}
-.prow .x{padding:.45em .8em;background:transparent;color:var(--muted);border:1px solid var(--line)}
-.hint{font-size:.9rem;color:var(--muted);margin:6px 0 0;max-width:70ch}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-details{margin-top:12px;color:var(--muted);font-size:.95rem}
-details summary{cursor:pointer;color:var(--ink)}
-details ol{padding-left:1.2em;margin:.6em 0 0;max-width:70ch}
+<meta name="description" content="Carrera de caballos con baraja española, gratis y sin registro: partida rápida, 1 contra 1, partida personalizada, campeonato por rondas y salas con código para jugar con amigos.">
 
-/* cartas con volteo */
-.fc{--w:64px;width:var(--w);aspect-ratio:var(--ratio);perspective:900px;position:relative;flex:none}
-.fc .in{position:absolute;inset:0;transform-style:preserve-3d;transition:transform var(--flip) cubic-bezier(.3,.7,.25,1)}
-.fc.up .in{transform:rotateY(180deg)}
-.fc .f{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:6% / 4%;overflow:hidden;box-shadow:0 3px 10px rgba(0,0,0,.55);background:#fbfbfa}
-.fc .fr{transform:rotateY(180deg)}
-.fc img{width:100%;height:100%;display:block}
-.fc.deal{animation:deal .4s ease-out}
-@keyframes deal{from{transform:translate(-90px,-10px) rotate(-8deg);opacity:0}to{transform:none;opacity:1}}
+<!-- Tarjeta al pegar el enlace en WhatsApp, Telegram o redes.
+     OJO: og:url, og:image y canonical deben ser absolutas; si algún día se
+     cambia el dominio, hay que tocarlas aquí y en nada más. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Carrera de caballos">
+<meta property="og:locale" content="es_ES">
+<meta property="og:title" content="Carrera de caballos — baraja española">
+<meta property="og:description" content="Echa una carrera con la baraja española: apuestas, campeonato y salas con código para jugar con amigos. Gratis y desde el navegador.">
+<meta property="og:url" content="https://valprimos.github.io/CarreradeCaballos/">
+<meta property="og:image" content="https://valprimos.github.io/CarreradeCaballos/social.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Los cuatro caballos de la baraja española sobre un tapete verde">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://valprimos.github.io/CarreradeCaballos/">
 
-/* pista */
-.scroller{overflow-x:auto}
-.track{display:grid}
-.th{font-size:.82rem;color:var(--muted);text-align:center;padding-bottom:4px}
-.lane-label{display:flex;align-items:center;gap:8px;font:700 1rem var(--serif);color:var(--ink);border-top:1px solid var(--line)}
-.dot{width:14px;height:14px;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px rgba(255,255,255,.55);flex:none}
-.lane-label.small{font:400 .85rem var(--sans);color:var(--muted)}
-.cell{min-height:112px;display:flex;align-items:center;justify-content:center;border-top:1px solid var(--line);border-left:1px dashed rgba(255,255,255,.14)}
-.cell.l1,.lane-label.l1{background:rgba(0,0,0,.14)}
-.cell.start{border-left:0}
-.cell.meta{border-left:4px solid var(--ink);background:repeating-conic-gradient(rgba(255,255,255,.14) 0 25%,transparent 0 50%) 0 0/18px 18px}
-.cell.chk{min-height:96px}
-.horse{--w:62px}
-.horse.hop{animation:hop .5s ease-out}
-.horse.retreat{animation:shake .5s ease-in-out}
-.horse.win .f{box-shadow:0 0 0 3px var(--brass),0 0 26px 6px rgba(224,185,95,.8)}
-@keyframes hop{40%{transform:translateY(-14px)}}
-@keyframes shake{25%{transform:translateX(-7px) rotate(-4deg)}75%{transform:translateX(7px) rotate(4deg)}}
-.chk .fc{--w:48px}
-
-.table-row{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
-.stack{display:flex;flex-direction:column;align-items:center;gap:10px;font-size:.9rem;color:var(--muted)}
-.pile{--w:150px;border-radius:6% / 4%;box-shadow:3px 3px 0 #561515,6px 6px 0 #451010,9px 9px 0 #350c0c,12px 14px 18px rgba(0,0,0,.5)}
-.pile .fc{--w:150px}
-.pile .f{box-shadow:none}
-.slot{width:150px;aspect-ratio:var(--ratio);border:2px dashed var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px;font-size:.85rem}
-.side{flex:1 1 280px;min-width:0}
-.bets{list-style:none;margin:0 0 12px;padding:0}
-.bets li{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}
-.bets .chips{margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
-.delta{font-weight:700;margin-left:6px}
-.pos{color:#8fe3a8}.neg{color:#ff9d92}
-#log{margin:0;padding:0;list-style:none;font-size:.92rem;color:var(--muted);min-height:6.4em}
-#log li:first-child{color:var(--ink)}
-.banner{background:var(--brass);color:#2a2008;border-radius:10px;padding:12px 16px;margin-bottom:14px;font:700 1.2rem var(--serif)}
-
-.cfg{margin-top:14px;display:grid;gap:10px}
-.cfgrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.cfgrow>span{min-width:84px;color:var(--muted)}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
-.seg button{background:transparent;color:var(--ink);border-radius:0;padding:.5em 1.1em;font-weight:600}
-.seg button.on{background:var(--brass);color:#2a2008}
-button.pile{background:none;border:0;padding:0;margin:0;color:inherit;cursor:pointer;transition:transform .15s}
-button.pile:not(:disabled):hover{transform:translateY(-4px)}
-button.pile:disabled{cursor:default;opacity:1}
-.foot{text-align:right;margin-top:26px}
-button.link{background:none;color:var(--muted);font:400 .82rem var(--sans);padding:.3em .5em;text-decoration:underline;opacity:.7}
-button.link:hover{opacity:1}
-dialog{background:#10281d;color:var(--ink);border:1px solid var(--line);border-radius:12px;max-width:min(520px,92vw);padding:20px}
-dialog::backdrop{background:rgba(0,0,0,.6)}
-dialog p{margin:.5em 0;font-size:.95rem;color:var(--muted)}
-dialog form{margin-top:14px;text-align:right}
-select#spd{padding:.55em .7em}
-[hidden]{display:none!important}
-@media (prefers-reduced-motion:reduce){:root{--flip:.01s}*{animation:none!important}}
-</style>
+<meta name="theme-color" content="#0E5A38" id="themeColor">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Carrera de caballos">
+<link rel="apple-touch-icon" href="icons/Icon-192.png">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="estilos.css">
 </head>
 <body>
-<main>
-  <header class="hero">
-    <div>
-      <h1>Carrera de caballos</h1>
-      
-    </div>
-    <div class="fan" id="fan" aria-hidden="true"></div>
-  </header>
+<noscript>
+  <main>
+    <h1>Carrera de caballos</h1>
+    <p>El juego de la carrera de caballos con la baraja española, para jugar en el navegador. Es gratis, no hace falta registrarse y no guarda ningún dato personal. <strong>Necesitas activar JavaScript para jugar.</strong></p>
+    <h2>Cómo se juega</h2>
+    <ol>
+      <li>Los cuatro caballos (el 11 de cada palo) salen de la baraja y se ponen en la línea de salida.</li>
+      <li>Con las cartas restantes se tienden unas cuantas boca abajo: son los pasos de la pista. El resto forma el mazo.</li>
+      <li>Cada carta que se destapa hace avanzar una casilla al caballo de su palo.</li>
+      <li>En cuanto todos los caballos dejan atrás un paso, su carta se levanta y el caballo de ese palo retrocede una casilla.</li>
+      <li>Gana el primero en cruzar la meta, un paso más allá de la última carta de la pista.</li>
+    </ol>
+    <h2>Modos de juego</h2>
+    <ul>
+      <li><strong>Partida rápida</strong>: los cuatro caballos y apuestas con fichas.</li>
+      <li><strong>1 contra 1</strong>: solo dos palos, uno por jugador.</li>
+      <li><strong>Partida personalizada</strong>: eliges el largo de la pista y quién juega con cada palo.</li>
+      <li><strong>Campeonato</strong>: varias carreras seguidas repartiendo puntos; gana quien más sume.</li>
+      <li><strong>Jugar con amigos</strong>: un código de sala para ver la misma carrera en varios móviles.</li>
+    </ul>
+  </main>
+</noscript>
 
-  <section id="setup" class="panel">
-    <h2>Jugadores y apuestas</h2>
-    <div id="rows"></div>
-    <div class="cfg">
-      <div class="cfgrow"><span>Pista</span><div class="seg" id="segLen" role="radiogroup" aria-label="Largo de la pista"></div></div>
-      <div class="cfgrow"><span>Modo</span><div class="seg" id="segMode" role="radiogroup" aria-label="Modo de juego"></div></div>
-      <div class="cfgrow" id="rowSpeed" hidden><span>Velocidad</span><div class="seg" id="segSpeed" role="radiogroup" aria-label="Velocidad"></div></div>
+<main id="app">
+  <div class="top">
+    <button id="btnMenu" class="ghost chico" hidden>Menú principal</button>
+    <span class="marca" id="marca">Carrera de caballos</span>
+    <div class="acciones"><button id="btnAjustes" class="ghost chico">Ajustes</button></div>
+  </div>
+
+  <!-- ===== MENÚ ===== -->
+  <section id="vMenu">
+    <header class="hero">
+      <div>
+        <h1>Carrera de caballos</h1>
+        <p>La carrera con baraja española: cuatro caballos, una pista de cartas boca abajo y fichas para apostar.</p>
+      </div>
+      <div class="fan" id="fan" aria-hidden="true"></div>
+    </header>
+
+    <div class="modos">
+      <button class="modo" data-modo="rapida">
+        <b>Partida rápida</b>
+        <span class="desc">Los cuatro caballos, pista de 6 pasos y fichas para apostar. A correr.</span>
+        <span class="etiquetas"><span class="etq">4 caballos</span><span class="etq">Apuestas</span></span>
+      </button>
+      <button class="modo" data-modo="uno">
+        <b>1 contra 1</b>
+        <span class="desc">Un duelo directo: dos jugadores, dos palos, dos caballos.</span>
+        <span class="etiquetas"><span class="etq">2 caballos</span><span class="etq">Apuestas</span></span>
+      </button>
+      <button class="modo" data-modo="personalizada">
+        <b>Partida personalizada</b>
+        <span class="desc">Elige el largo de la pista y reparte los palos entre los jugadores.</span>
+        <span class="etiquetas"><span class="etq">Pista de 2 a 12</span><span class="etq">Hasta 6 jugadores</span></span>
+      </button>
+      <button class="modo" data-modo="campeonato">
+        <b>Campeonato</b>
+        <span class="desc">Varias carreras seguidas. Cada puesto da puntos y gana quien más sume.</span>
+        <span class="etiquetas"><span class="etq">De 2 a 10 rondas</span><span class="etq">Puntos</span></span>
+      </button>
+      <button class="modo amigos" id="btnAmigos">
+        <b>Jugar con amigos</b>
+        <span class="desc">La misma carrera en varios móviles con un código de sala. Sin servidor ni registro.</span>
+        <span class="etiquetas"><span class="etq">Código de sala</span><span class="etq">Enlace</span></span>
+      </button>
     </div>
-    <div class="actions">
-      <button id="add" class="ghost">Añadir jugador</button>
-      <button id="start">Empezar carrera</button>
-      <button id="resetChips" class="ghost">Reiniciar fichas</button>
+
+    <div class="enlaces-pie">
+      <button id="btnPers" class="ghost">Personalizar el paño y el dorso</button>
     </div>
   </section>
 
-  <section id="game" hidden>
-    <div id="banner" class="banner" hidden role="status"></div>
-    <div class="panel scroller"><div id="track" class="track" aria-label="Pista de la carrera"></div></div>
+  <!-- ===== JUGAR CON AMIGOS ===== -->
+  <section id="vAmigos" hidden>
+    <div class="panel">
+      <h2>Crear una sala</h2>
+      <p class="nota" style="margin-top:0">Elige a qué se juega y se genera un código. Quien lo reciba verá la misma carrera, carta por carta y con el mismo ganador.</p>
+      <div class="cfg">
+        <div class="cfgrow"><span>Modo</span><div class="seg" id="segSalaModo" role="radiogroup" aria-label="Modo de la sala"></div></div>
+        <div class="cfgrow" id="filaSalaPar" hidden><span>Palos</span>
+          <select id="salaPalo1" aria-label="Palo del primer jugador"></select>
+          <select id="salaPalo2" aria-label="Palo del segundo jugador"></select>
+        </div>
+        <div class="cfgrow" id="filaSalaPasos" hidden><span>Pista</span>
+          <input type="range" id="salaPasos" min="2" max="12" step="1" aria-label="Largo de la pista"><span class="valor" id="salaPasosV"></span>
+        </div>
+        <div class="cfgrow" id="filaSalaRondas" hidden><span>Rondas</span>
+          <input type="range" id="salaRondas" min="2" max="10" step="1" aria-label="Número de rondas"><span class="valor" id="salaRondasV"></span>
+        </div>
+      </div>
+      <div class="acciones-fila"><button id="btnCrearSala">Crear sala</button></div>
+      <div id="salaCreada" hidden style="margin-top:16px">
+        <div class="codigo" id="salaCodigo" aria-label="Código de la sala"></div>
+        <p class="nota" id="salaDescr"></p>
+        <div class="acciones-fila">
+          <button id="btnCopiarCodigo" class="ghost">Copiar código</button>
+          <button id="btnCopiarEnlace" class="ghost">Copiar enlace</button>
+          <button id="btnIrMesa" class="rojo">Ir a la mesa</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Unirme a una sala</h2>
+      <div class="prow">
+        <input id="inCodigo" maxlength="14" placeholder="Código de 8 caracteres" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Código de sala">
+        <button id="btnUnirme">Unirme</button>
+      </div>
+      <p class="error" id="errCodigo" hidden role="alert"></p>
+      <p class="nota">Al unirte, cada uno pone su nombre y elige su palo en su propio móvil. Lo que no se comparte es quién se ha unido ni qué palo ha elegido cada uno (haría falta un servidor): lo que sí es igual para todos es la carrera y el ganador. Los códigos van en base 32, sin I, L, O ni U, y se perdonan minúsculas, espacios y guiones.</p>
+    </div>
+  </section>
+
+  <!-- ===== PERSONALIZAR ===== -->
+  <section id="vPers" hidden>
+    <div class="panel">
+      <h2>Paño de la mesa</h2>
+      <div class="opciones" id="opPanos" role="radiogroup" aria-label="Paño de la mesa"></div>
+      <h2>Dorso de la baraja</h2>
+      <div class="opciones" id="opDorsos" role="radiogroup" aria-label="Dorso de la baraja"></div>
+      <div class="vista-previa" id="vistaPrevia" aria-hidden="true"></div>
+      <p class="nota">Se guardan en este navegador y siguen puestos al volver.</p>
+      <div class="acciones-fila"><button id="btnPersVolver">Listo</button></div>
+    </div>
+  </section>
+
+  <!-- ===== PREPARAR LA MESA ===== -->
+  <section id="vConfig" hidden>
+    <div class="barra-sala" id="barraSalaCfg" hidden>
+      <span>Sala</span><b data-codigo></b>
+      <button class="ghost chico" data-copiar="codigo">Copiar código</button>
+      <button class="ghost chico" data-copiar="enlace">Copiar enlace</button>
+    </div>
+    <div class="panel">
+      <h2 id="cfgTitulo"></h2>
+      <p class="nota" id="cfgReglas" style="margin:0 0 12px"></p>
+      <h3 id="cfgJugTitulo">Jugadores y apuestas</h3>
+      <div id="rows"></div>
+      <div class="cfg">
+        <div class="cfgrow" id="filaPasos" hidden><span>Pista</span>
+          <input type="range" id="inPasos" min="2" max="12" step="1" aria-label="Largo de la pista"><span class="valor" id="inPasosV"></span>
+          <span class="nota" style="margin:0">cartas boca abajo</span>
+        </div>
+        <div class="cfgrow" id="filaRondas" hidden><span>Rondas</span>
+          <input type="range" id="inRondas" min="2" max="10" step="1" aria-label="Número de rondas"><span class="valor" id="inRondasV"></span>
+        </div>
+        <div class="cfgrow"><span>Modo</span><div class="seg" id="segMode" role="radiogroup" aria-label="Modo de juego"></div></div>
+        <div class="cfgrow" id="rowSpeed" hidden><span>Velocidad</span><div class="seg" id="segSpeed" role="radiogroup" aria-label="Velocidad"></div></div>
+      </div>
+      <div class="acciones-fila">
+        <button id="add" class="ghost">Añadir jugador</button>
+        <button id="start" class="rojo">Empezar carrera</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== JUEGO ===== -->
+  <section id="vJuego" hidden>
+    <div class="barra-sala" id="barraSalaJuego" hidden>
+      <span>Sala</span><b data-codigo></b>
+      <button class="ghost chico" data-copiar="codigo">Copiar código</button>
+      <button class="ghost chico" data-copiar="enlace">Copiar enlace</button>
+    </div>
+    <div id="cartel" class="cartel" hidden role="status"></div>
+    <div class="panel scroller plano"><div id="track" class="track" aria-label="Pista de la carrera"></div></div>
     <div class="panel table-row">
       <div class="stack">
-        <button id="deck" class="pile" aria-label="Sacar carta del mazo"><div class="fc"><div class="in"><div class="f"><img src="dorso/card_back.webp" alt=""></div></div></div></button>
+        <button id="deck" class="pile" aria-label="Sacar carta del mazo"><div class="fc"><div class="in"><div class="f"><img class="dorso" src="dorso/card_back.webp" alt=""></div></div></div></button>
         <span id="deckCount"></span>
       </div>
       <div class="stack">
@@ -150,13 +208,12 @@ select#spd{padding:.55em .7em}
         <span>Última carta</span>
       </div>
       <div class="side">
-        <h2>Apuestas</h2>
+        <h2 id="tituloLista">Apuestas</h2>
         <ul id="bets" class="bets"></ul>
-        <div class="actions" style="margin-top:0">
+        <div class="acciones-fila" style="margin-top:0">
           <button id="auto" class="ghost" aria-pressed="false">Automático</button>
           <select id="spd" aria-label="Velocidad" hidden><option value="lenta">Lenta</option><option value="normal">Normal</option><option value="rapida">Rápida</option></select>
-          <button id="again" class="ghost" hidden>Otra carrera</button>
-          <button id="back" class="ghost">Configuración</button>
+          <button id="salir" class="ghost">Salir de la mesa</button>
         </div>
       </div>
     </div>
@@ -164,208 +221,51 @@ select#spd{padding:.55em .7em}
   </section>
 
   <footer class="foot"><button type="button" class="link" id="credBtn">Créditos</button></footer>
-  <dialog id="cred" aria-labelledby="credT">
-    <h2 id="credT">Créditos</h2>
-    <p>Ilustraciones de las cartas: baraja española de <a href="https://commons.wikimedia.org/wiki/User:Basquetteur" rel="noopener">Basquetteur</a> (Wikimedia Commons), en la versión vectorial SVG de la colección <a href="https://github.com/gjenkins20/spanish-playing-cards-svg" rel="noopener">spanish-playing-cards-svg</a>.</p>
-    <p>Licencia: <a href="https://creativecommons.org/licenses/by-sa/3.0/deed.es" rel="noopener">Creative Commons Atribución-CompartirIgual 3.0 (CC BY-SA 3.0)</a>. Las cartas (SVG y WebP) de las carpetas <code>oros</code>, <code>copas</code>, <code>espadas</code>, <code>bastos</code> y <code>dorso</code> se distribuyen bajo esa misma licencia.</p>
-    <p>Las imágenes se han adaptado para utilizar únicamente una baraja de 40 cartas (sin los ochos ni los nueves). Las ilustraciones no se han modificado: el juego las muestra como imágenes WebP renderizadas a partir de los SVG originales, que también se incluyen en cada carpeta.</p>
-    <form method="dialog"><button class="ghost">Cerrar</button></form>
-  </dialog>
 </main>
 
-<script>
-const SUITS=[
-  {id:'oros',name:'Oros',file:'coins',color:'#e0b13d'},
-  {id:'copas',name:'Copas',file:'cups',color:'#e5665c'},
-  {id:'espadas',name:'Espadas',file:'swords',color:'#6aa0ec'},
-  {id:'bastos',name:'Bastos',file:'clubs',color:'#74c36f'}
-];
-const RANKS=[1,2,3,4,5,6,7,10,11,12];
-const RN={1:'As',10:'Sota',11:'Caballo',12:'Rey'};
-let META=8,NCHECK=7;const PAYOUT=3,START_CHIPS=100,MAX_PLAYERS=6;
-const BACK='dorso/card_back.webp';
-const $=id=>document.getElementById(id);
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const suitOf=id=>SUITS.find(s=>s.id===id);
-const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const cardName=c=>`${RN[c.rank]||c.rank} de ${suitOf(c.suit).name.toLowerCase()}`;
-const src=c=>`${c.suit}/card_${suitOf(c.suit).file}_${String(c.rank).padStart(2,'0')}.webp`;
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+<!-- ===== DIÁLOGOS ===== -->
+<dialog id="dAjustes" aria-labelledby="ajT">
+  <h2 id="ajT">Ajustes</h2>
+  <label class="ajuste"><input type="checkbox" id="ajVibra"> Vibración al destapar una carta a mano</label>
+  <label class="ajuste"><input type="checkbox" id="ajPantalla"> Mantener la pantalla encendida durante la carrera</label>
+  <details>
+    <summary>Cómo se juega</summary>
+    <ol>
+      <li>Los caballos (el 11 de cada palo) salen de la baraja y se ponen en la salida.</li>
+      <li>Con el resto, ya barajado, se tienden boca abajo las cartas de la pista. Lo demás es el mazo.</li>
+      <li>Cada carta que sale hace avanzar un paso al caballo de su palo.</li>
+      <li>Cuando todos los caballos dejan atrás un paso, se levanta su carta y el caballo de ese palo retrocede una casilla.</li>
+      <li>Gana el primero en cruzar la meta, un paso más allá de la última carta.</li>
+      <li>La carrera puede seguir para repartir los demás puestos hasta que nadie pueda avanzar.</li>
+    </ol>
+    <p>Apuestas: el palo ganador paga el triple de lo apostado y el resto pierde la apuesta. Las fichas se guardan en este navegador. En el campeonato no hay fichas: cada puesto da puntos (el primero tantos como caballos corran).</p>
+  </details>
+  <p><button type="button" class="ghost chico" id="ajFichas">Reiniciar fichas</button></p>
+  <p><a href="https://github.com/Valprimos/CarreradeCaballos" rel="noopener">Código fuente</a></p>
+  <form method="dialog"><button class="ghost">Cerrar</button></form>
+</dialog>
 
-/* carta con volteo: dorso visible y, al añadir .up, gira y muestra la ilustración original */
-function fc(c,{w,up=false,cls=''}={}){
-  const d=document.createElement('div');
-  d.className=`fc ${cls} ${up?'up':''}`;
-  if(w)d.style.setProperty('--w',w+'px');
-  d.setAttribute('role','img');d.setAttribute('aria-label',cardName(c));
-  d.innerHTML=`<div class="in"><div class="f"><img src="${BACK}" alt="" decoding="async"></div><div class="f fr"><img src="${src(c)}" alt="${cardName(c)}" decoding="async"></div></div>`;
-  return d;
-}
-const loaded=new Set();
-const preload=u=>loaded.has(u)?Promise.resolve():new Promise(r=>{const i=new Image();const done=()=>{loaded.add(u);r();};i.src=u;(i.decode?i.decode():Promise.reject()).then(done,done);setTimeout(r,4000);});
-const warm=cards=>cards.forEach(c=>{const i=new Image();i.src=src(c);});
+<dialog id="dConf" aria-labelledby="confT">
+  <h2 id="confT">¿Seguro?</h2>
+  <p id="confMsg"></p>
+  <form method="dialog">
+    <button value="no" class="ghost">Cancelar</button>
+    <button value="si" class="rojo" id="confOk">Aceptar</button>
+  </form>
+</dialog>
 
-/* fichas guardadas en el navegador */
-let chips={};
-try{chips=JSON.parse(localStorage.getItem('carrera_fichas')||'{}')}catch(e){}
-const saveChips=()=>{try{localStorage.setItem('carrera_fichas',JSON.stringify(chips))}catch(e){}};
-const getChips=n=>chips[n]??START_CHIPS;
+<dialog id="cred" aria-labelledby="credT">
+  <h2 id="credT">Créditos</h2>
+  <p>Ilustraciones de las cartas: baraja española de <a href="https://commons.wikimedia.org/wiki/User:Basquetteur" rel="noopener">Basquetteur</a> (Wikimedia Commons), en la versión vectorial SVG de la colección <a href="https://github.com/gjenkins20/spanish-playing-cards-svg" rel="noopener">spanish-playing-cards-svg</a>.</p>
+  <p>Licencia: <a href="https://creativecommons.org/licenses/by-sa/3.0/deed.es" rel="noopener">Creative Commons Atribución-CompartirIgual 3.0 (CC BY-SA 3.0)</a>. Las cartas (SVG y WebP) de las carpetas <code>oros</code>, <code>copas</code>, <code>espadas</code>, <code>bastos</code> y <code>dorso</code> se distribuyen bajo esa misma licencia.</p>
+  <p>Las imágenes se han adaptado para utilizar únicamente una baraja de 40 cartas (sin los ochos ni los nueves). Las ilustraciones no se han modificado: el juego las muestra como imágenes WebP renderizadas a partir de los SVG originales, que también se incluyen en cada carpeta. Los dorsos de colores se obtienen aplicando un filtro de color en pantalla.</p>
+  <p>Las reglas, los modos de juego, el campeonato y las salas por código se basan en la versión Flutter de <a href="https://github.com/Danielgrs18/CarreraDeCaballos" rel="noopener">Danielgrs18/CarreraDeCaballos</a>.</p>
+  <form method="dialog"><button class="ghost">Cerrar</button></form>
+</dialog>
 
-/* preparación */
-let rows=[{name:'Jugador 1',horse:'oros',bet:10},{name:'Jugador 2',horse:'copas',bet:10}];
-function renderSetup(){
-  $('rows').innerHTML=rows.map((p,i)=>`
-    <div class="prow">
-      <input data-i="${i}" data-k="name" value="${esc(p.name)}" maxlength="14" aria-label="Nombre del jugador ${i+1}">
-      <select data-i="${i}" data-k="horse" aria-label="Palo de ${esc(p.name)}">${SUITS.map(s=>`<option value="${s.id}" ${s.id===p.horse?'selected':''}>${s.name}</option>`).join('')}</select>
-      <select data-i="${i}" data-k="bet" aria-label="Apuesta de ${esc(p.name)}">${[5,10,20].map(b=>`<option value="${b}" ${b===p.bet?'selected':''}>${b} fichas</option>`).join('')}</select>
-      <button class="x" data-del="${i}" ${rows.length<2?'disabled':''}>Quitar</button>
-    </div>`).join('');
-  $('add').disabled=rows.length>=MAX_PLAYERS;
-}
-$('rows').addEventListener('input',e=>{const t=e.target;if(t.dataset.k==='name')rows[t.dataset.i].name=t.value;});
-$('rows').addEventListener('change',e=>{const t=e.target,k=t.dataset.k;if(k&&k!=='name')rows[t.dataset.i][k]=k==='bet'?+t.value:t.value;});
-$('rows').addEventListener('click',e=>{const d=e.target.dataset.del;if(d!==undefined&&rows.length>1){rows.splice(+d,1);renderSetup();}});
-$('add').onclick=()=>{if(rows.length<MAX_PLAYERS){rows.push({name:'Jugador '+(rows.length+1),horse:SUITS[rows.length%4].id,bet:10});renderSetup();}};
-$('resetChips').onclick=()=>{chips={};saveChips();};
+<div id="aviso" class="aviso" hidden role="status"></div>
 
-/* abanico de caballos de la cabecera */
-SUITS.forEach((s,i)=>{const el=fc({suit:s.id,rank:11},{w:104});$('fan').appendChild(el);setTimeout(()=>el.classList.add('up'),250+i*180);});
-
-/* configuración */
-const cfg={ncheck:7,auto:false,speed:'normal'};
-const SPEEDS={lenta:1.5,normal:.8,rapida:.35};
-const RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
-function seg(id,opts,get,set){
-  const el=$(id);
-  const paint=()=>{el.innerHTML=opts.map(([v,l])=>`<button type="button" role="radio" aria-checked="${get()===v}" class="${get()===v?'on':''}" data-v="${v}">${l}</button>`).join('');};
-  el.onclick=e=>{const v=e.target.dataset.v;if(v===undefined)return;set(v);paint();};
-  paint();return paint;
-}
-const repaint=[
-  seg('segLen',[['5','Corta'],['7','Normal'],['10','Larga']],()=>String(cfg.ncheck),v=>{cfg.ncheck=+v;}),
-  seg('segMode',[['m','Manual'],['a','Automático']],()=>cfg.auto?'a':'m',v=>{cfg.auto=v==='a';$('rowSpeed').hidden=!cfg.auto;}),
-  seg('segSpeed',[['lenta','Lenta'],['normal','Normal'],['rapida','Rápida']],()=>cfg.speed,v=>{cfg.speed=v;})
-];
-
-/* partida */
-let deck,discard,checks,pos,revealed,over,log,players=[],horseEls={},chkEls=[],busy=false,auto=false,token=0;
-function newRace(){
-  token++;busy=false;auto=false;
-  NCHECK=cfg.ncheck;META=NCHECK+1;
-  deck=shuffle(SUITS.flatMap(s=>RANKS.filter(r=>r!==11).map(r=>({suit:s.id,rank:r}))));
-  checks=deck.splice(0,NCHECK);
-  discard=[];revealed=0;over=false;log=['Los caballos están en la salida.'];
-  pos={oros:0,copas:0,espadas:0,bastos:0};
-  $('banner').hidden=true;$('again').hidden=true;$('auto').disabled=false;
-  $('last').innerHTML='<div class="slot">Aún no ha salido ninguna carta</div>';
-  buildTrack();renderBets();renderLog();sync();
-  preload(src(deck[deck.length-1]));warm(deck);
-  if(cfg.auto){const my=token;setTimeout(()=>{if(my===token&&!over)setAuto(true);},1500);}
-}
-function startGame(){
-  players=rows.map((p,i)=>({name:(p.name||'').trim()||'Jugador '+(i+1),horse:p.horse,bet:p.bet}));
-  $('setup').hidden=true;$('game').hidden=false;document.body.classList.add('playing');
-  newRace();
-}
-function sync(){
-  $('deck').disabled=over||busy||auto;
-  $('deckCount').textContent=over?'Fin de carrera':auto?`${deck.length} cartas`:`Toca el mazo (${deck.length})`;
-  $('auto').setAttribute('aria-pressed',auto);$('auto').textContent=auto?'Pausar':'Automático';
-  $('spd').hidden=!auto;$('spd').value=cfg.speed;
-}
-function buildTrack(){
-  const T=$('track');
-  T.style.gridTemplateColumns=`92px repeat(${META+1},minmax(72px,1fr))`;
-  T.style.minWidth=(92+(META+1)*72)+'px';
-  let h='<div></div>';
-  for(let c=0;c<=META;c++)h+=`<div class="th">${c===0?'Salida':c===META?'Meta':''}</div>`;
-  SUITS.forEach((s,i)=>{
-    const b=i%2?'':' l1';
-    h+=`<div class="lane-label${b}"><span class="dot" style="--c:${s.color}"></span>${s.name}</div>`;
-    for(let c=0;c<=META;c++)h+=`<div class="cell${b}${c===0?' start':''}${c===META?' meta':''}" data-l="${s.id}" data-c="${c}"></div>`;
-  });
-  h+='<div class="lane-label small">Controles</div>';
-  for(let c=0;c<=META;c++)h+=`<div class="cell chk" data-k="${c}"></div>`;
-  T.innerHTML=h;
-  SUITS.forEach((s,i)=>{
-    const el=fc({suit:s.id,rank:11},{cls:'horse'});el.dataset.p=0;horseEls[s.id]=el;
-    T.querySelector(`.cell[data-l="${s.id}"][data-c="0"]`).appendChild(el);
-    setTimeout(()=>el.classList.add('up'),200+i*170);
-  });
-  chkEls=checks.map((c,i)=>{const el=fc(c);T.querySelector(`.cell[data-k="${i+1}"]`).appendChild(el);return el;});
-}
-function moveHorses(){
-  SUITS.forEach(s=>{
-    const h=horseEls[s.id],prev=+h.dataset.p,now=pos[s.id];
-    if(prev===now)return;
-    $('track').querySelector(`.cell[data-l="${s.id}"][data-c="${now}"]`).appendChild(h);
-    h.dataset.p=now;h.classList.remove('hop','retreat');void h.offsetWidth;h.classList.add(now>prev?'hop':'retreat');
-  });
-}
-const say=t=>{log.unshift(t);if(log.length>6)log.pop();};
-function setAuto(v){auto=v;cfg.auto=v;sync();if(v&&!busy&&!over)draw();}
-
-async function draw(){
-  if(over||busy)return;
-  busy=true;const my=token;
-  const f=auto?SPEEDS[cfg.speed]:.9,w=ms=>sleep(ms*f);
-  if(!RM)document.documentElement.style.setProperty('--flip',(.75*f)+'s');
-  if(!deck.length){deck=shuffle(discard);discard=[];say('Se acaba el mazo: se baraja el descarte.');}
-  const c=deck.pop();discard.push(c);sync();
-  const el=fc(c,{w:150,cls:'deal'});
-  $('last').replaceChildren(el);
-  await preload(src(c));if(my!==token)return;
-  el.classList.add('up');
-  await w(1000);if(my!==token)return;
-  const s=suitOf(c.suit);pos[c.suit]++;
-  say(`Sale el ${cardName(c)}: avanza el caballo de ${s.name.toLowerCase()}.`);
-  moveHorses();renderLog();
-  if(pos[c.suit]>=META){busy=false;finish(c.suit);return;}
-  await w(550);if(my!==token)return;
-  while(revealed<NCHECK&&Math.min(...Object.values(pos))>=revealed+1){
-    const k=checks[revealed];chkEls[revealed].classList.add('up');revealed++;
-    await w(1050);if(my!==token)return;
-    pos[k.suit]=Math.max(0,pos[k.suit]-1);
-    say(`Control ${revealed}: se voltea el ${cardName(k)} y el caballo de ${suitOf(k.suit).name.toLowerCase()} retrocede.`);
-    moveHorses();renderLog();
-    await w(550);if(my!==token)return;
-  }
-  busy=false;sync();
-  if(deck.length)preload(src(deck[deck.length-1]));
-  if(auto)setTimeout(()=>{if(my===token)draw();},300*f);
-}
-function finish(suit){
-  over=true;auto=false;
-  horseEls[suit].classList.add('win');
-  const s=suitOf(suit);
-  players.forEach(p=>{p.delta=p.horse===suit?p.bet*PAYOUT:-p.bet;chips[p.name]=getChips(p.name)+p.delta;});
-  saveChips();
-  const w=players.filter(p=>p.horse===suit).map(p=>p.name);
-  const b=$('banner');
-  b.textContent=`Gana el caballo de ${s.name.toLowerCase()}. ${w.length?'Cobra: '+w.join(', ')+'.':'Nadie había apostado por él.'}`;
-  b.hidden=false;
-  say(`El caballo de ${s.name.toLowerCase()} cruza la meta.`);
-  $('auto').disabled=true;$('again').hidden=false;
-  sync();renderBets();renderLog();
-}
-function renderBets(){
-  $('bets').innerHTML=players.map(p=>{
-    const s=suitOf(p.horse);
-    const d=p.delta!==undefined&&over?`<span class="delta ${p.delta>0?'pos':'neg'}">${p.delta>0?'+':''}${p.delta}</span>`:'';
-    return `<li><span class="dot" style="--c:${s.color}"></span><span>${esc(p.name)} apuesta ${p.bet} a ${s.name.toLowerCase()}</span><span class="chips">${getChips(p.name)} fichas${d}</span></li>`;
-  }).join('');
-}
-function renderLog(){$('log').innerHTML=log.map(t=>`<li>${esc(t)}</li>`).join('');}
-
-$('start').onclick=startGame;
-$('deck').onclick=()=>{if(!auto)draw();};
-$('again').onclick=newRace;
-$('auto').onclick=()=>setAuto(!auto);
-$('spd').onchange=e=>{cfg.speed=e.target.value;};
-$('back').onclick=()=>{token++;busy=false;auto=false;repaint.forEach(f=>f());$('rowSpeed').hidden=!cfg.auto;$('game').hidden=true;$('setup').hidden=false;document.body.classList.remove('playing');};
-$('credBtn').onclick=()=>$('cred').showModal();
-renderSetup();
-</script>
+<script src="motor.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
