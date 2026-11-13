@@ -156,6 +156,9 @@
   /* ---------- vistas ---------- */
   let avisoRotar = false;
   const mqVertical = typeof matchMedia === 'function' ? matchMedia('(max-width:700px) and (orientation:portrait)') : null;
+  let tGiro = 0;
+  function mostrarGiro() { $('giro').hidden = false; clearTimeout(tGiro); tGiro = setTimeout(ocultarGiro, 6000); }
+  function ocultarGiro() { $('giro').hidden = true; }
   const VISTAS = { menu: 'vMenu', amigos: 'vAmigos', pers: 'vPers', config: 'vConfig', juego: 'vJuego' };
   function ir(v) {
     vista = v;
@@ -166,7 +169,8 @@
     if (v === 'juego') pedirPantalla(); else soltarPantalla();
     actualizarBarras();
     // Sugerencia puntual (no permanente) para pantallas verticales.
-    if (v === 'juego' && mqVertical && mqVertical.matches && !avisoRotar) { avisoRotar = true; avisar('Con el móvil en horizontal la carrera se ve más grande.'); }
+    if (v !== 'juego') ocultarGiro();
+    else if (mqVertical && mqVertical.matches && !avisoRotar) { avisoRotar = true; mostrarGiro(); }
     window.scrollTo(0, 0);
   }
   const enMarcha = () => vista === 'juego' && !!carrera && (fase !== 'fin' || (S.camp && !S.camp.terminado));
@@ -338,13 +342,13 @@
     $('rapidaBox').hidden = true;
     [
       seg('segMode', [['m', 'Manual'], ['a', 'Automático']], () => (ajustes.auto ? 'a' : 'm'),
-        v => { ajustes.auto = v === 'a'; guardarAjustes(); }),
+        v => { ajustes.auto = v === 'a'; $('rowSpeed').hidden = !ajustes.auto; guardarAjustes(); }),
       seg('segSpeed', [['lenta', 'Lenta'], ['normal', 'Normal'], ['rapida', 'Rápida']], () => ajustes.velocidad,
         v => { ajustes.velocidad = v; guardarAjustes(); }),
       rango('inPasos', 'inPasosV', () => S.pasos, v => { S.pasos = v; }, () => !!S.sala),
       rango('inRondas', 'inRondasV', () => S.rondas, v => { S.rondas = v; }, () => !!S.sala)
     ];
-    $('rowSpeed').hidden = false;
+    $('rowSpeed').hidden = !ajustes.auto;
     renderFilas();
     ir('config');
   }
@@ -455,10 +459,10 @@
 
   function sync() {
     const n = carrera ? carrera.mazo.length : 0, corriendo = fase === 'corriendo';
-    $('deck').disabled = !carrera || !corriendo || busy || auto || espera;
+    $('deck').disabled = !carrera || !corriendo || busy || auto;
     $('deckCount').textContent = fase === 'fin' ? 'Fin de carrera'
       : fase === 'ganador' ? 'Hay ganador'
-      : espera ? 'Pulsa Empezar' : auto ? `${n} cartas` : `Toca el mazo (${n})`;
+      : espera ? 'Toca para jugar a mano' : auto ? `${n} cartas` : `Toca el mazo (${n})`;
     $('auto').setAttribute('aria-pressed', auto);
     $('auto').textContent = espera ? 'Empezar' : auto ? 'Pausar' : 'Automático';
     $('auto').classList.toggle('rojo', espera);
@@ -472,7 +476,7 @@
   async function sacar() {
     if (busy || fase !== 'corriendo' || !carrera || carrera.agotada) return;
     busy = true; const mi = token;
-    const f = SPEEDS[ajustes.velocidad] * (auto ? 1 : .65), w = ms => sleep(ms * f);
+    const f = auto ? SPEEDS[ajustes.velocidad] : .9, w = ms => sleep(ms * f);
     if (!RM) document.documentElement.style.setProperty('--flip', (.75 * f) + 's');
 
     const r = carrera.jugarTurno();
@@ -680,7 +684,7 @@
   $('rapAuto').onclick = () => { ajustes.auto = true; guardarAjustes(); empezar(); };
 
   $('deck').onclick = () => {
-    if (auto) return;
+    if (espera) espera = false; else if (auto) return;
     if (ajustes.vibracion && navigator.vibrate) navigator.vibrate(25);
     sacar();
   };
@@ -715,6 +719,8 @@
     }
   };
   $('credBtn').onclick = () => $('cred').showModal();
+  $('giroOk').onclick = ocultarGiro;
+  if (mqVertical) { const hG = e => { if (!e.matches) ocultarGiro(); }; if (mqVertical.addEventListener) mqVertical.addEventListener('change', hG); else if (mqVertical.addListener) mqVertical.addListener(hG); }
 
   /* ---------- arranque ---------- */
   aplicarTema();
