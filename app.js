@@ -58,7 +58,7 @@
   const getFichas = n => fichas[n] ?? START_CHIPS;
 
   /* ---------- estado ---------- */
-  const SPEEDS = { lenta: 1.5, normal: .8, rapida: .35 };
+  const SPEEDS = { lenta: 2.2, normal: 1.4, rapida: .8 };
   const S = {
     modo: 'rapida',
     jugadores: [{ nombre: 'Jugador 1', palo: 'oros', apuesta: 10 }, { nombre: 'Jugador 2', palo: 'copas', apuesta: 10 }],
@@ -81,7 +81,7 @@
   }
   const guardarJugadores = () => LS.set('carrera_jugadores', S.jugadores);
 
-  let carrera = null, fase = 'corriendo', busy = false, auto = false, seguir = false, token = 0, ganadorLiquidado = false;
+  let carrera = null, fase = 'corriendo', busy = false, auto = false, seguir = false, token = 0, ganadorLiquidado = false, espera = false;
   let horseEls = {}, chkEls = [], log = [];
   let vista = 'menu';
 
@@ -157,6 +157,11 @@
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && vista === 'juego') pedirPantalla(); });
 
   /* ---------- vistas ---------- */
+  let rotarCerrado = false;
+  const mqVertical = typeof matchMedia === 'function' ? matchMedia('(max-width:700px) and (orientation:portrait)') : null;
+  function actualizarRotar() {
+    $('rotar').hidden = !(mqVertical && mqVertical.matches && !rotarCerrado && (vista === 'config' || vista === 'juego'));
+  }
   const VISTAS = { menu: 'vMenu', amigos: 'vAmigos', pers: 'vPers', config: 'vConfig', juego: 'vJuego' };
   function ir(v) {
     vista = v;
@@ -165,7 +170,7 @@
     $('marca').hidden = v === 'menu';
     document.body.classList.toggle('playing', v === 'juego');
     if (v === 'juego') pedirPantalla(); else soltarPantalla();
-    actualizarBarras();
+    actualizarBarras(); actualizarRotar();
     window.scrollTo(0, 0);
   }
   const enMarcha = () => vista === 'juego' && !!carrera && (fase !== 'fin' || (S.camp && !S.camp.terminado));
@@ -377,6 +382,7 @@
   function nuevaCarrera() {
     token++; busy = false; auto = false; fase = 'corriendo';
     seguir = S.modo === 'campeonato'; ganadorLiquidado = false;
+    espera = ajustes.auto;   // en automático, la carrera no arranca hasta pulsar Empezar
     carrera = new Carrera({
       pasos: pasosEfectivos(),
       palos: M.palosEnCarrera(S.modo, S.par),
@@ -390,7 +396,6 @@
     $('tituloLista').hidden = $('bets').hidden = S.modo === 'rapida';
     construirPista(); pintarLista(); pintarLog(); sync();
     preload(src(carrera.mazo[carrera.mazo.length - 1])); calentar(carrera.mazo);
-    if (ajustes.auto) { const mi = token; setTimeout(() => { if (mi === token && fase === 'corriendo') setAuto(true); }, 1500); }
   }
 
   /* ---------- pista ---------- */
@@ -451,16 +456,18 @@
 
   function sync() {
     const n = carrera ? carrera.mazo.length : 0, corriendo = fase === 'corriendo';
-    $('deck').disabled = !carrera || !corriendo || busy || auto;
+    $('deck').disabled = !carrera || !corriendo || busy || auto || espera;
     $('deckCount').textContent = fase === 'fin' ? 'Fin de carrera'
       : fase === 'ganador' ? 'Hay ganador'
-      : auto ? `${n} cartas` : `Toca el mazo (${n})`;
+      : espera ? 'Pulsa Empezar' : auto ? `${n} cartas` : `Toca el mazo (${n})`;
     $('auto').setAttribute('aria-pressed', auto);
-    $('auto').textContent = auto ? 'Pausar' : 'Automático';
+    $('auto').textContent = espera ? 'Empezar' : auto ? 'Pausar' : 'Automático';
+    $('auto').classList.toggle('rojo', espera);
+    $('auto').classList.toggle('ghost', !espera);
     $('auto').disabled = !corriendo;
     $('spd').hidden = !auto; $('spd').value = ajustes.velocidad;
   }
-  function setAuto(v) { auto = v; ajustes.auto = v; guardarAjustes(); sync(); if (v && !busy && fase === 'corriendo') sacar(); }
+  function setAuto(v) { auto = v; sync(); if (v && !busy && fase === 'corriendo') sacar(); }
 
   /* ---------- un turno ---------- */
   async function sacar() {
@@ -517,7 +524,7 @@
     if (abreCartel) { cartelGanador(); return; }
     sync();
     if (carrera.mazo.length) preload(src(carrera.mazo[carrera.mazo.length - 1]));
-    if (auto) setTimeout(() => { if (mi === token) sacar(); }, 300 * f);
+    if (auto) setTimeout(() => { if (mi === token) sacar(); }, 800 * f);
   }
 
   function liquidarFichas(ganador) {
@@ -659,7 +666,7 @@
     if (ajustes.vibracion && navigator.vibrate) navigator.vibrate(25);
     sacar();
   };
-  $('auto').onclick = () => setAuto(!auto);
+  $('auto').onclick = () => { if (espera) { espera = false; setAuto(true); } else setAuto(!auto); };
   $('spd').onchange = e => { ajustes.velocidad = e.target.value; guardarAjustes(); };
   $('salir').onclick = async () => {
     if (!(await salirSiSeguro('Si sales ahora, se pierde la carrera en marcha.'))) return;
@@ -689,6 +696,8 @@
     }
   };
   $('credBtn').onclick = () => $('cred').showModal();
+  $('rotarOk').onclick = () => { rotarCerrado = true; actualizarRotar(); };
+  if (mqVertical) { if (mqVertical.addEventListener) mqVertical.addEventListener('change', actualizarRotar); else if (mqVertical.addListener) mqVertical.addListener(actualizarRotar); }
 
   /* ---------- arranque ---------- */
   aplicarTema();
