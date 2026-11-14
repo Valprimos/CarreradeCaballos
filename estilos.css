@@ -515,3 +515,9 @@ h1{text-wrap:balance}
   .modo b{font-size:1.3rem}
   .modo span.desc{font-size:.9rem}
 }
+
+/* ===== v14: ajustes del anfitrión dentro del cartel de la sala ===== */
+.cartel .cfgrow>span:first-child{color:#5a410c}
+.cartel .valor{color:#2a1d04}
+.cartel .cfg{margin:10px 0 0}
+.cartel .seg button:not(.on){color:#faf3de}

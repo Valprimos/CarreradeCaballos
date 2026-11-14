@@ -26,11 +26,13 @@
         .on('presence', { event: 'sync' }, () => h.alCambiar(lista()))
         .on('presence', { event: 'join' }, () => h.alUnirse())
         .on('broadcast', { event: 'inicio' }, m => h.alInicio(m.payload))
+        .on('broadcast', { event: 'turno' }, m => h.alTurno(m.payload))
         .subscribe(estado => {
           if (estado === 'SUBSCRIBED') canal.track({ t, jugadores });   // también al reconectar
           else if (estado === 'CHANNEL_ERROR' || estado === 'TIMED_OUT') h.alError();
         });
     },
+    enviarTurno(p) { if (canal) canal.send({ type: 'broadcast', event: 'turno', payload: p }); },
     enviarInicio(p) { if (canal) canal.send({ type: 'broadcast', event: 'inicio', payload: p }); },
     salir() { if (canal && cliente) { try { cliente.removeChannel(canal); } catch (e) { /* nada */ } } canal = null; }
   };

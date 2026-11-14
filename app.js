@@ -74,9 +74,9 @@
     .filter(j => j && IDS.includes(j.palo))
     .map((j, i) => ({ nombre: String(j.nombre || '').slice(0, 14) || 'Jugador ' + (i + 1), palo: j.palo, apuesta: [5, 10, 20].includes(j.apuesta) ? j.apuesta : 10 }));
   { const o = limpiarJug(LS.get('carrera_jugadores', null)); if (o.length) S.jugadores = o; }
-  const listas = { otros: S.jugadores, pers: limpiarJug(LS.get('carrera_jugadores_pers', null)) };
-  const claveLista = () => (S.modo === 'personalizada' ? 'pers' : 'otros');
-  const guardarJugadores = () => { LS.set('carrera_jugadores', listas.otros); LS.set('carrera_jugadores_pers', listas.pers); };
+  const listas = { otros: S.jugadores, pers: limpiarJug(LS.get('carrera_jugadores_pers', null)), online: limpiarJug(LS.get('carrera_jugador_online', null)).slice(0, 1) };
+  const claveLista = () => (esOnline() ? 'online' : S.modo === 'personalizada' ? 'pers' : 'otros');
+  const guardarJugadores = () => { LS.set('carrera_jugadores', listas.otros); LS.set('carrera_jugadores_pers', listas.pers); LS.set('carrera_jugador_online', listas.online); };
 
   let carrera = null, fase = 'corriendo', busy = false, auto = false, seguir = false, token = 0, ganadorLiquidado = false, espera = false;
   let horseEls = {}, chkEls = [], log = [], hist = [], turnoN = 0;
@@ -328,7 +328,7 @@
 
   /* ---------- preparar la mesa ---------- */
   const palosPermitidos = () => (S.modo === 'uno' && S.sala ? S.sala.palos : IDS);
-  const limitesJug = () => (S.modo === 'uno' ? [S.sala ? 1 : 2, 2] : S.modo === 'personalizada' ? [0, LIMITES.jugadores.max] : [LIMITES.jugadores.min, LIMITES.jugadores.max]);
+  const limitesJug = () => (esOnline() ? [1, 1] : S.modo === 'uno' ? [S.sala ? 1 : 2, 2] : S.modo === 'personalizada' ? [0, LIMITES.jugadores.max] : [LIMITES.jugadores.min, LIMITES.jugadores.max]);
 
   function ajustarJugadores() {
     S.jugadores = listas[claveLista()];
@@ -349,17 +349,17 @@
 
   /** modo = null conserva el actual (al entrar en una sala). */
   function abrirConfig(modo) {
-    Online.salir();
+    Online.salir(); S.onl = null;
     if (modo) { S.modo = modo; S.sala = null; S.pasos = LIMITES.pasos.defecto; }
     ajustarJugadores();
     $('cfgTitulo').textContent = MODOS[S.modo].nombre;
     $('cfgReglas').textContent = MODOS[S.modo].reglas;
-    $('cfgJugTitulo').textContent = S.modo === 'campeonato' ? 'Jugadores' : S.modo === 'personalizada' ? 'Jugadores y apuestas (opcional)' : 'Jugadores y apuestas';
-    $('filaPasos').hidden = !(S.modo === 'personalizada' || S.modo === 'campeonato');
-    $('filaRondas').hidden = S.modo !== 'campeonato';
-    $('add').hidden = S.modo === 'rapida' || (S.modo === 'uno' && !S.sala);
+    $('cfgJugTitulo').textContent = esOnline() ? 'Tu jugador' : S.modo === 'campeonato' ? 'Jugadores' : S.modo === 'personalizada' ? 'Jugadores y apuestas (opcional)' : 'Jugadores y apuestas';
+    $('filaPasos').hidden = esOnline() || !(S.modo === 'personalizada' || S.modo === 'campeonato');
+    $('filaRondas').hidden = esOnline() || S.modo !== 'campeonato';
+    $('add').hidden = esOnline() || S.modo === 'rapida' || (S.modo === 'uno' && !S.sala);
     // Partida rápida: sin jugadores ni ajustes, solo elegir manual o automático.
-    const rap = S.modo === 'rapida';
+    const rap = S.modo === 'rapida' && !esOnline();
     ['cfgJugTitulo', 'rows'].forEach(id => { $(id).hidden = rap; });
     $('rapidaBox').hidden = true;
     [
@@ -380,7 +380,7 @@
   }
 
   function renderFilas() {
-    const permitidos = palosPermitidos(), conApuesta = S.modo !== 'campeonato', [min, max] = limitesJug();
+    const permitidos = palosPermitidos(), conApuesta = S.modo !== 'campeonato' && S.modo !== 'rapida', [min, max] = limitesJug();
     $('rows').innerHTML = S.jugadores.map((p, i) => `
       <div class="prow">
         <input data-i="${i}" data-k="nombre" value="${esc(p.nombre)}" maxlength="14" aria-label="Nombre del jugador ${i + 1}">
@@ -406,7 +406,7 @@
     nuevaCarrera();
   }
 
-  const pasosEfectivos = () => (S.modo === 'personalizada' || S.modo === 'campeonato' ? (S.sala ? S.sala.pasos : S.pasos) : PASOS_FIJOS);
+  const pasosEfectivos = () => (S.modo === 'personalizada' || S.modo === 'campeonato' ? (esOnline() && S.onl ? S.onl.pasos : S.sala ? S.sala.pasos : S.pasos) : PASOS_FIJOS);
   const semillaActual = () => ((S.sala ? S.sala.semilla : S.semillaBase) + S.ronda * 7919) >>> 0;
 
   function nuevaCarrera() {
@@ -487,7 +487,7 @@
 
   function sync() {
     const n = carrera ? carrera.mazo.length : 0, corriendo = fase === 'corriendo';
-    $('deck').disabled = !carrera || !corriendo || busy || auto;
+    $('deck').disabled = !carrera || !corriendo || busy || auto || (esOnline() && (!onlListo || (S.onl && !S.onl.auto && !Online.soyAnfitrion())));
     $('deckCount').textContent = fase === 'fin' ? 'Fin de carrera'
       : fase === 'ganador' ? 'Hay ganador'
       : espera ? 'Toca para jugar a mano' : auto ? `${n} cartas` : `Toca el mazo (${n})`;
@@ -504,7 +504,7 @@
   async function sacar() {
     if (busy || fase !== 'corriendo' || !carrera || carrera.agotada) return;
     busy = true; const mi = token;
-    const f = enVivo() ? 1.4 : auto ? SPEEDS[ajustes.velocidad] : .9, w = ms => sleep(ms * f);
+    const f = enVivo() ? (esOnline() && S.onl ? S.onl.F : 1.4) : auto ? SPEEDS[ajustes.velocidad] : .9, w = ms => sleep(ms * f);
     if (!RM) document.documentElement.style.setProperty('--flip', (.75 * f) + 's');
 
     const r = carrera.jugarTurno();
@@ -665,13 +665,23 @@
   /* ---------- Sala online (Supabase): lobby y salida simultánea ----------
      El anfitrión (el primero en conectarse) manda «sale la carrera n a esta hora»; cada móvil calcula la
      carrera con la semilla de la sala y la ve a la vez. Se envían muy pocos mensajes. */
-  let lobbyActivo = false, ultimoInicio = null;
+  let lobbyActivo = false, ultimoInicio = null, ultimaLista = [], onlListo = false, turnoRecibido = 0, turnoPendiente = false;
+  const VEL_F = { lenta: 2, normal: 1.4, rapida: .9 };
+  const payloadInicio = (n, retraso) => ({ n, inicio: ahora() + retraso, pasos: S.onl.pasos, rondas: S.onl.rondas, auto: S.onl.auto, vel: S.onl.vel, F: VEL_F[S.onl.vel] });
   function pintarLobby(l) {
-    if (!lobbyActivo) return;
-    const jug = l.flatMap(x => x.jugadores || []);
-    $('cartel').innerHTML = `<h2>Sala ${codigoLegible(S.sala)}</h2><p>${l.length} móvil${l.length === 1 ? '' : 'es'} conectado${l.length === 1 ? '' : 's'}.</p>`
-      + `<ul class="clasif">${jug.map(j => `<li>${mini(j.palo)}${esc(j.nombre)}<span class="quien">${paloDe(j.palo).nombre}</span></li>`).join('')}</ul>`
-      + (Online.soyAnfitrion() ? '<div class="acciones-fila"><button id="cEmpezarOnline">Empezar carrera</button></div>' : '<p>Esperando a que el anfitrión empiece…</p>');
+    if (l) ultimaLista = l; else l = ultimaLista;
+    if (!lobbyActivo || !S.onl) return;
+    const host = Online.soyAnfitrion(), o = S.onl, jug = l.flatMap(x => x.jugadores || []);
+    const btn = (at, v, t, on) => `<button type="button" data-${at}="${v}" class="${on ? 'on' : ''}">${t}</button>`;
+    const aj = host ? `<div class="cfg">
+      <div class="cfgrow"><span>Carrera</span><div class="seg">${btn('om', 'a', 'Automático', o.auto)}${btn('om', 'm', 'Manual', !o.auto)}</div></div>
+      <div class="cfgrow"><span>Ritmo</span><div class="seg">${btn('ov', 'lenta', 'Lenta', o.vel === 'lenta')}${btn('ov', 'normal', 'Normal', o.vel === 'normal')}${btn('ov', 'rapida', 'Rápida', o.vel === 'rapida')}</div></div>
+      ${S.modo === 'personalizada' || S.modo === 'campeonato' ? `<div class="cfgrow"><span>Pista</span><input type="range" id="oPasos" min="2" max="12" value="${o.pasos}"><span class="valor" id="oPasosV">${o.pasos}</span></div>` : ''}
+      ${S.modo === 'campeonato' ? `<div class="cfgrow"><span>Rondas</span><input type="range" id="oRondas" min="2" max="10" value="${o.rondas}"><span class="valor" id="oRondasV">${o.rondas}</span></div>` : ''}
+    </div>` : '<p>El anfitrión elige los ajustes y empieza la carrera.</p>';
+    $('cartel').innerHTML = `<h2>Sala ${codigoLegible(S.sala)}</h2><p>${l.length} móvil${l.length === 1 ? '' : 'es'} conectado${l.length === 1 ? '' : 's'}${host ? ' (eres el anfitrión)' : ''}.</p>`
+      + (jug.length ? `<ul class="clasif">${jug.map(j => `<li>${mini(j.palo)}${esc(j.nombre)}<span class="quien">${paloDe(j.palo).nombre}</span></li>`).join('')}</ul>` : '')
+      + aj + (host ? '<div class="acciones-fila"><button id="cEmpezarOnline">Empezar carrera</button></div>' : '');
     $('cartel').hidden = false;
   }
   function finOnline() {
@@ -680,15 +690,19 @@
     if (Online.soyAnfitrion() && !fin) c.outerHTML = `<div class="acciones-fila"><button id="cOtraOnline">${S.camp ? 'Siguiente ronda' : 'Otra carrera'}</button></div>`;
     else c.textContent = fin ? 'Campeonato terminado.' : 'Esperando al anfitrión…';
   }
-  async function disputar(n, ini) {
-    S.ronda = n; nuevaCarrera(); auto = true; sync();
-    const mi = token, plan = M.planCarrera(S.sala, n);
-    $('cartel').innerHTML = '<h2 id="cuentaT"></h2><p>Todos los móviles de la sala salen a la vez.</p>'; $('cartel').hidden = false;
+  async function disputar(n, ini, p) {
+    S.onl = { pasos: p.pasos, rondas: p.rondas, auto: p.auto, vel: p.vel, F: p.F };
+    if (S.camp) S.camp.rondas = p.rondas;
+    S.ronda = n; onlListo = false; turnoRecibido = 0; turnoPendiente = false;
+    nuevaCarrera(); auto = p.auto; sync();
+    const mi = token, plan = p.auto ? M.planCarrera({ ...S.sala, pasos: pasosEfectivos() }, n, p.F) : null;
+    $('cartel').innerHTML = `<h2 id="cuentaT"></h2><p>${p.auto ? 'Todos los móviles de la sala salen a la vez.' : 'Modo manual: el anfitrión destapa las cartas y todos las veis a la vez.'}</p>`; $('cartel').hidden = false;
     while (ahora() < ini) {
       $('cuentaT').textContent = `La carrera sale en ${Math.max(0, Math.ceil((ini - ahora()) / 1000))} s`;
       await sleep(250); if (mi !== token) return;
     }
-    $('cartel').hidden = true;
+    $('cartel').hidden = true; onlListo = true; sync();
+    if (!p.auto) return;                       // manual: cada carta llega con un aviso del anfitrión
     for (const t of plan.inicios) {
       while (ahora() < ini + t) { await sleep(40); if (mi !== token) return; }
       while (busy) { await sleep(20); if (mi !== token) return; }
@@ -696,19 +710,37 @@
     }
   }
   function entrarOnline() {
-    S.ronda = 0; nuevaCarrera(); auto = true; sync();
+    S.onl = { pasos: S.sala.pasos, rondas: S.sala.rondas, auto: true, vel: 'normal', F: VEL_F.normal };
+    S.ronda = 0; nuevaCarrera(); auto = true; onlListo = false; sync();
     lobbyActivo = true; ultimoInicio = null;
-    Online.entrar(M.codigoSala(S.sala).slice(0, 8), S.partida.map(p => ({ nombre: p.nombre, palo: p.palo })), {
-      alCambiar: pintarLobby,
+    Online.entrar(M.codigoSala(S.sala).slice(0, 8), S.partida.map(q => ({ nombre: q.nombre, palo: q.palo })), {
+      alCambiar: l => pintarLobby(l),
       alInicio: p => {
         if (ultimoInicio && ultimoInicio.n === p.n && ultimoInicio.inicio === p.inicio) return;
-        lobbyActivo = false; ultimoInicio = p; disputar(p.n, p.inicio);
+        lobbyActivo = false; ultimoInicio = p; disputar(p.n, p.inicio, p);
+      },
+      alTurno: p => {
+        if (p.n !== S.ronda || p.k !== turnoRecibido || !onlListo) return;
+        turnoRecibido++;
+        (async () => { while (busy) await sleep(20); await sacar(); turnoPendiente = false; sync(); })();
       },
       alUnirse: () => { if (Online.soyAnfitrion() && ultimoInicio && ahora() < ultimoInicio.inicio + 3000) Online.enviarInicio(ultimoInicio); },
       alError: () => avisar('Sin conexión con la sala. Reintentando…')
     });
     pintarLobby([]);
   }
+
+  // Ajustes del anfitrión dentro del lobby.
+  $('cartel').addEventListener('click', e => {
+    const d = e.target.dataset; if (!S.onl || !lobbyActivo) return;
+    if (d.om !== undefined) { S.onl.auto = d.om === 'a'; pintarLobby(); }
+    else if (d.ov !== undefined) { S.onl.vel = d.ov; S.onl.F = VEL_F[d.ov]; pintarLobby(); }
+  });
+  $('cartel').addEventListener('input', e => {
+    if (!S.onl) return;
+    if (e.target.id === 'oPasos') { S.onl.pasos = +e.target.value; $('oPasosV').textContent = e.target.value; }
+    else if (e.target.id === 'oRondas') { S.onl.rondas = +e.target.value; $('oRondasV').textContent = e.target.value; }
+  });
 
   async function correrSala() {
     const sala = S.sala;
@@ -797,6 +829,14 @@
   $('rapAuto').onclick = () => { ajustes.auto = true; guardarAjustes(); empezar(); };
 
   $('deck').onclick = () => {
+    if (esOnline() && S.onl && !S.onl.auto) {   // online manual: solo el anfitrión destapa, y lo ven todos
+      if (Online.soyAnfitrion() && onlListo && !busy && !turnoPendiente && fase === 'corriendo') {
+        turnoPendiente = true; if (ajustes.vibracion) haptico();
+        Online.enviarTurno({ n: S.ronda, k: turnoRecibido });
+        setTimeout(() => { turnoPendiente = false; }, 4000);
+      }
+      return;
+    }
     if (espera) espera = false; else if (auto) return;
     if (ajustes.vibracion) haptico();
     sacar();
@@ -813,8 +853,8 @@
     if (id === 'cSeguir') seguirCarrera();
     else if (id === 'cRevancha' || id === 'cNuevoCamp') revancha();
     else if (id === 'cSiguiente') siguienteRonda();
-    else if (id === 'cEmpezarOnline') Online.enviarInicio({ n: 0, inicio: ahora() + 6000 });
-    else if (id === 'cOtraOnline') Online.enviarInicio({ n: S.ronda + 1, inicio: ahora() + 8000 });
+    else if (id === 'cEmpezarOnline') Online.enviarInicio(payloadInicio(0, 6000));
+    else if (id === 'cOtraOnline') Online.enviarInicio(payloadInicio(S.ronda + 1, 8000));
     else if (id === 'cFin') { token++; S.sala = null; ir('menu'); }
   });
 
