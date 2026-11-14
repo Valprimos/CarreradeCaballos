@@ -496,7 +496,9 @@
     $('auto').classList.toggle('rojo', espera);
     $('auto').classList.toggle('ghost', !espera);
     $('auto').disabled = !corriendo;
-    $('spd').hidden = !auto || enVivo(); $('auto').hidden = enVivo(); $('spd').value = ajustes.velocidad;
+    const hostOn = esOnline() && Online.soyAnfitrion();
+    $('spd').hidden = !auto || (enVivo() && !hostOn); $('auto').hidden = enVivo() && !hostOn;
+    $('spd').value = esOnline() && S.onl ? S.onl.vel : ajustes.velocidad;
   }
   function setAuto(v) { auto = v; sync(); if (v && !busy && fase === 'corriendo') sacar(); }
 
@@ -665,7 +667,7 @@
   /* ---------- Sala online (Supabase): lobby y salida simultánea ----------
      El anfitrión (el primero en conectarse) manda «sale la carrera n a esta hora»; cada móvil calcula la
      carrera con la semilla de la sala y la ve a la vez. Se envían muy pocos mensajes. */
-  let lobbyActivo = false, ultimoInicio = null, ultimaLista = [], onlListo = false, turnosObjetivo = 0, turnosJugados = 0, workerOn = false, catchup = false, ultimoIni = 0, turnoPendiente = false;
+  let lobbyActivo = false, ultimoInicio = null, ultimaLista = [], onlListo = false, turnosObjetivo = 0, turnosJugados = 0, workerOn = false, catchup = false, ultimoIni = 0, turnoPendiente = false, conduciendo = false, eraHost = false;
   const VEL_F = { lenta: 2, normal: 1.4, rapida: .9 };
   const payloadInicio = (n, retraso) => ({ n, inicio: ahora() + retraso, retraso, pasos: S.onl.pasos, rondas: S.onl.rondas, auto: S.onl.auto, vel: S.onl.vel, F: VEL_F[S.onl.vel] });
   function pintarLobby(l) {
@@ -675,7 +677,7 @@
     const btn = (at, v, t, on) => `<button type="button" data-${at}="${v}" class="${on ? 'on' : ''}">${t}</button>`;
     const aj = host ? `<div class="cfg">
       <div class="cfgrow"><span>Carrera</span><div class="seg">${btn('om', 'a', 'Automático', o.auto)}${btn('om', 'm', 'Manual', !o.auto)}</div></div>
-      <div class="cfgrow"><span>Ritmo</span><div class="seg">${btn('ov', 'lenta', 'Lenta', o.vel === 'lenta')}${btn('ov', 'normal', 'Normal', o.vel === 'normal')}${btn('ov', 'rapida', 'Rápida', o.vel === 'rapida')}</div></div>
+      ${o.auto ? `<div class="cfgrow"><span>Ritmo</span><div class="seg">${btn('ov', 'lenta', 'Lenta', o.vel === 'lenta')}${btn('ov', 'normal', 'Normal', o.vel === 'normal')}${btn('ov', 'rapida', 'Rápida', o.vel === 'rapida')}</div></div>` : ''}
       ${S.modo === 'personalizada' || S.modo === 'campeonato' ? `<div class="cfgrow"><span>Pista</span><input type="range" id="oPasos" min="2" max="12" value="${o.pasos}"><span class="valor" id="oPasosV">${o.pasos}</span></div>` : ''}
       ${S.modo === 'campeonato' ? `<div class="cfgrow"><span>Rondas</span><input type="range" id="oRondas" min="2" max="10" value="${o.rondas}"><span class="valor" id="oRondasV">${o.rondas}</span></div>` : ''}
     </div>` : '<p>El anfitrión elige los ajustes y empieza la carrera.</p>';
@@ -695,19 +697,14 @@
     if (S.camp) S.camp.rondas = p.rondas;
     S.ronda = n; onlListo = false; turnosObjetivo = 0; turnosJugados = 0; turnoPendiente = false;
     nuevaCarrera(); auto = p.auto; sync();
-    const mi = token, plan = p.auto ? M.planCarrera({ ...S.sala, pasos: pasosEfectivos() }, n, p.F) : null;
+    const mi = token;
     $('cartel').innerHTML = `<h2 id="cuentaT"></h2><p>${p.auto ? 'Todos los móviles de la sala salen a la vez.' : 'Modo manual: el anfitrión destapa las cartas y todos las veis a la vez.'}</p>`; $('cartel').hidden = false;
     while (ahora() < ini) {
       $('cuentaT').textContent = `La carrera sale en ${Math.max(0, Math.ceil((ini - ahora()) / 1000))} s`;
       await sleep(250); if (mi !== token) return;
     }
     $('cartel').hidden = true; onlListo = true; sync();
-    if (!p.auto) { bombear(mi); return; }                       // manual: cada carta llega con un aviso del anfitrión
-    for (const t of plan.inicios) {
-      while (ahora() < ini + t) { await sleep(40); if (mi !== token) return; }
-      while (busy) { await sleep(20); if (mi !== token) return; }
-      catchup = ahora() > ini + t + 1500; await sacar(); catchup = false; if (mi !== token) return;
-    }
+    bombear(mi); conducir(mi);
   }
   // Modo manual: el anfitrión avisa «ya van N cartas» y cada móvil las va destapando hasta ponerse al día
   // (si un aviso se pierde o llegas tarde, se recuperan solas y más deprisa).
@@ -724,12 +721,40 @@
       if (mi === token && onlListo && turnosJugados < turnosObjetivo) bombear(mi);
     }
   }
+  // Modo automático online: el anfitrión manda una carta cada cierto tiempo. Si se va, otro toma el relevo.
+  async function conducir(mi) {
+    if (conduciendo) return; conduciendo = true;
+    const sigue = () => mi === token && onlListo && fase === 'corriendo' && carrera && !carrera.agotada && S.onl && S.onl.auto && Online.soyAnfitrion();
+    try {
+      while (sigue()) {
+        if (turnosJugados >= turnosObjetivo && !busy) {
+          await sleep(800 * S.onl.F); if (!sigue()) break;
+          if (turnosJugados >= turnosObjetivo && !busy) Online.enviarTurno({ n: S.ronda, k: turnosObjetivo });
+          await sleep(400);
+        } else await sleep(100);
+      }
+    } finally { conduciendo = false; }
+  }
+  const modoOnline = () => ({ auto: S.onl.auto, vel: S.onl.vel, F: S.onl.F });
+
   function entrarOnline() {
+    eraHost = false;
     S.onl = { pasos: S.sala.pasos, rondas: S.sala.rondas, auto: true, vel: 'normal', F: VEL_F.normal };
     S.ronda = 0; nuevaCarrera(); auto = true; onlListo = false; sync();
     lobbyActivo = true; ultimoInicio = null;
     Online.entrar(M.codigoSala(S.sala).slice(0, 8), S.partida.map(q => ({ nombre: q.nombre, palo: q.palo })), {
-      alCambiar: l => pintarLobby(l),
+      alCambiar: l => {                      // cambios de quién está conectado (y relevo de anfitrión)
+        pintarLobby(l);
+        const host = Online.soyAnfitrion();
+        if (host && !eraHost && l.length > 1) avisar('Ahora eres el anfitrión de la sala');
+        eraHost = host; sync();
+        if (host) { if (onlListo) conducir(token); if (fase === 'fin') finOnline(); }
+      },
+      alModo: p => {
+        if (!S.onl) return;
+        S.onl.auto = p.auto; S.onl.vel = p.vel; S.onl.F = p.F; auto = p.auto; sync();
+        if (onlListo && Online.soyAnfitrion()) conducir(token);
+      },
       alInicio: p => {
         if (ultimoInicio && ultimoInicio.n === p.n && ultimoInicio.inicio === p.inicio) return;
         lobbyActivo = false; ultimoInicio = p; ultimoIni = ahora() + p.retraso; disputar(p.n, ultimoIni, p);
@@ -741,7 +766,8 @@
       alUnirse: () => {                      // quien entra tarde recibe el estado y se pone al día
         if (!Online.soyAnfitrion() || !ultimoInicio) return;
         Online.enviarInicio({ ...ultimoInicio, retraso: ultimoIni - ahora() });
-        if (!ultimoInicio.auto && turnosObjetivo > 0) Online.enviarTurno({ n: ultimoInicio.n, k: turnosObjetivo - 1 });
+        if (S.onl) Online.enviarModo(modoOnline());
+        if (turnosObjetivo > 0) Online.enviarTurno({ n: ultimoInicio.n, k: turnosObjetivo - 1 });
       },
       alError: () => avisar('Sin conexión con la sala. Reintentando…')
     }, S.creador);
@@ -860,8 +886,19 @@
     sacar();
   };
   $('btnHist').onclick = abrirHistorial;
-  $('auto').onclick = () => { if (espera) { espera = false; setAuto(true); } else setAuto(!auto); };
-  $('spd').onchange = e => { ajustes.velocidad = e.target.value; guardarAjustes(); };
+  $('auto').onclick = () => {
+    if (esOnline() && S.onl) {                   // online: solo el anfitrión cambia entre manual y automático
+      if (Online.soyAnfitrion()) { S.onl.auto = !S.onl.auto; Online.enviarModo(modoOnline()); }
+      return;
+    }
+    if (espera) { espera = false; setAuto(true); } else setAuto(!auto); };
+  $('spd').onchange = e => {
+    if (esOnline() && S.onl) {
+      if (Online.soyAnfitrion()) { S.onl.vel = e.target.value; S.onl.F = VEL_F[e.target.value]; Online.enviarModo(modoOnline()); }
+      return;
+    }
+    ajustes.velocidad = e.target.value; guardarAjustes();
+  };
   $('salir').onclick = async () => {
     if (!(await salirSiSeguro('Si sales ahora, se pierde la carrera en marcha.'))) return;
     abrirConfig(null);

@@ -521,3 +521,16 @@ h1{text-wrap:balance}
 .cartel .valor{color:#2a1d04}
 .cartel .cfg{margin:10px 0 0}
 .cartel .seg button:not(.on){color:#faf3de}
+
+/* ===== v16: móvil vertical con la pista siempre del mismo tamaño ===== */
+@media (max-width:700px) and (orientation:portrait){
+  #barraSalaJuego{display:none!important}
+  body.playing{height:100vh;height:100svh}
+  #vJuego .table-row{--dk:clamp(36px,4.8svh,50px);height:calc(var(--dk)*1.526 + 70px);overflow:hidden;align-content:start}
+  .stack span{font-size:.55rem;line-height:12px;white-space:nowrap}
+  .bets{flex-wrap:nowrap;overflow:hidden;height:22px}
+  #log{display:none}
+}
+@media (orientation:landscape) and (max-height:620px){
+  body.playing{height:100vh;height:100svh}
+}

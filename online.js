@@ -27,11 +27,13 @@
         .on('presence', { event: 'join' }, () => h.alUnirse())
         .on('broadcast', { event: 'inicio' }, m => h.alInicio(m.payload))
         .on('broadcast', { event: 'turno' }, m => h.alTurno(m.payload))
+        .on('broadcast', { event: 'modo' }, m => h.alModo(m.payload))
         .subscribe(estado => {
           if (estado === 'SUBSCRIBED') canal.track({ t, jugadores, creador: !!creador });   // también al reconectar
           else if (estado === 'CHANNEL_ERROR' || estado === 'TIMED_OUT') h.alError();
         });
     },
+    enviarModo(p) { if (canal) canal.send({ type: 'broadcast', event: 'modo', payload: p }); },
     enviarTurno(p) { if (canal) canal.send({ type: 'broadcast', event: 'turno', payload: p }); },
     enviarInicio(p) { if (canal) canal.send({ type: 'broadcast', event: 'inicio', payload: p }); },
     salir() { if (canal && cliente) { try { cliente.removeChannel(canal); } catch (e) { /* nada */ } } canal = null; }
