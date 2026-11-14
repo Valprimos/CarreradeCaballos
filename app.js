@@ -104,7 +104,8 @@
   /* ---------- reloj compartido (salas en vivo) ---------- */
   let offsetReloj = 0;
   const ahora = () => Date.now() + offsetReloj;
-  const enVivo = () => !!(S.sala && S.sala.slot != null);
+  const esOnline = () => !!(S.sala && Online.disponible());
+  const enVivo = () => !!(S.sala && (S.sala.slot != null || Online.disponible()));
   const fmtHora = ms => new Date(ms).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
   /* ---------- avisos, diálogos, portapapeles ---------- */
@@ -185,6 +186,7 @@
     if (v === 'juego') pedirPantalla(); else soltarPantalla();
     actualizarBarras();
     // Sugerencia puntual (no permanente) para pantallas verticales.
+    if (v === 'menu' || v === 'amigos') Online.salir();
     if (v !== 'juego') ocultarGiro();
     else if (mqVertical && mqVertical.matches && !avisoRotar) { avisoRotar = true; mostrarGiro(); }
     window.scrollTo(0, 0);
@@ -292,18 +294,19 @@
     refrescaFilas();
     $('salaCreada').hidden = !S.salaCreada;
     if (S.salaCreada) mostrarSalaCreada();
+    $('segSalaHora').parentElement.hidden = Online.disponible();
     $('errCodigo').hidden = true;
   }
   function mostrarSalaCreada() {
     $('salaCreada').hidden = false;
     $('salaCodigo').textContent = codigoLegible(S.salaCreada);
-    $('salaDescr').textContent = describirSala(S.salaCreada) + ' Sale a las ' + fmtHora(M.inicioDeSlot(S.salaCreada.slot, ahora())) + ': todos los móviles de la sala corren a la vez.';
+    $('salaDescr').textContent = describirSala(S.salaCreada) + (S.salaCreada.slot != null ? ' Sale a las ' + fmtHora(M.inicioDeSlot(S.salaCreada.slot, ahora())) + ': todos los móviles de la sala corren a la vez.' : ' Entrad a la mesa con este código: tú eres el anfitrión y empiezas la carrera cuando estéis todos.');
   }
   function crearSala() {
     const b = S.borrador, fija = !(b.modalidad === 'personalizada' || b.modalidad === 'campeonato');
     S.salaCreada = M.nuevaSala({
       modalidad: b.modalidad, pasos: fija ? PASOS_FIJOS : b.pasos, rondas: b.rondas, palos: [...b.palos],
-      slot: M.slotDe(Math.ceil((ahora() + (+b.hora) * 60000) / 120000) * 120000)
+      ...(Online.disponible() ? {} : { slot: M.slotDe(Math.ceil((ahora() + (+b.hora) * 60000) / 120000) * 120000) })
     });
     mostrarSalaCreada();
   }
@@ -346,6 +349,7 @@
 
   /** modo = null conserva el actual (al entrar en una sala). */
   function abrirConfig(modo) {
+    Online.salir();
     if (modo) { S.modo = modo; S.sala = null; S.pasos = LIMITES.pasos.defecto; }
     ajustarJugadores();
     $('cfgTitulo').textContent = MODOS[S.modo].nombre;
@@ -397,6 +401,7 @@
     S.ronda = 0;
     S.camp = S.modo === 'campeonato' ? new Campeonato({ rondas: S.rondas, jugadores: S.partida }) : null;
     ir('juego');
+    if (esOnline()) { entrarOnline(); return; }
     if (enVivo()) { correrSala(); return; }
     nuevaCarrera();
   }
@@ -634,7 +639,7 @@
         <div class="acciones-fila"><button id="cRevancha">Revancha</button><button id="cFin" class="ghost">Finalizar</button></div>`;
     }
     $('cartel').innerHTML = html; $('cartel').hidden = false;
-    if (enVivo()) { $('cartel').querySelectorAll('button:not(#cFin)').forEach(b => b.remove()); $('cartel').insertAdjacentHTML('beforeend', '<p id="cuenta"></p>'); }
+    if (enVivo()) { $('cartel').querySelectorAll('button:not(#cFin)').forEach(b => b.remove()); $('cartel').insertAdjacentHTML('beforeend', '<p id="cuenta"></p>'); if (esOnline()) finOnline(); }
     pintarLista(); $('cartel').scrollIntoView({ block: 'nearest', behavior: RM ? 'auto' : 'smooth' });
   }
 
@@ -657,6 +662,54 @@
 
   /* Sala en vivo: cada carta sale a una hora fija calculada con la semilla de la sala,
      así que todos los móviles ven la misma carrera a la vez. Las carreras se encadenan solas. */
+  /* ---------- Sala online (Supabase): lobby y salida simultánea ----------
+     El anfitrión (el primero en conectarse) manda «sale la carrera n a esta hora»; cada móvil calcula la
+     carrera con la semilla de la sala y la ve a la vez. Se envían muy pocos mensajes. */
+  let lobbyActivo = false, ultimoInicio = null;
+  function pintarLobby(l) {
+    if (!lobbyActivo) return;
+    const jug = l.flatMap(x => x.jugadores || []);
+    $('cartel').innerHTML = `<h2>Sala ${codigoLegible(S.sala)}</h2><p>${l.length} móvil${l.length === 1 ? '' : 'es'} conectado${l.length === 1 ? '' : 's'}.</p>`
+      + `<ul class="clasif">${jug.map(j => `<li>${mini(j.palo)}${esc(j.nombre)}<span class="quien">${paloDe(j.palo).nombre}</span></li>`).join('')}</ul>`
+      + (Online.soyAnfitrion() ? '<div class="acciones-fila"><button id="cEmpezarOnline">Empezar carrera</button></div>' : '<p>Esperando a que el anfitrión empiece…</p>');
+    $('cartel').hidden = false;
+  }
+  function finOnline() {
+    const c = $('cuenta'); if (!c) return;
+    const fin = S.camp && S.camp.terminado;
+    if (Online.soyAnfitrion() && !fin) c.outerHTML = `<div class="acciones-fila"><button id="cOtraOnline">${S.camp ? 'Siguiente ronda' : 'Otra carrera'}</button></div>`;
+    else c.textContent = fin ? 'Campeonato terminado.' : 'Esperando al anfitrión…';
+  }
+  async function disputar(n, ini) {
+    S.ronda = n; nuevaCarrera(); auto = true; sync();
+    const mi = token, plan = M.planCarrera(S.sala, n);
+    $('cartel').innerHTML = '<h2 id="cuentaT"></h2><p>Todos los móviles de la sala salen a la vez.</p>'; $('cartel').hidden = false;
+    while (ahora() < ini) {
+      $('cuentaT').textContent = `La carrera sale en ${Math.max(0, Math.ceil((ini - ahora()) / 1000))} s`;
+      await sleep(250); if (mi !== token) return;
+    }
+    $('cartel').hidden = true;
+    for (const t of plan.inicios) {
+      while (ahora() < ini + t) { await sleep(40); if (mi !== token) return; }
+      while (busy) { await sleep(20); if (mi !== token) return; }
+      await sacar(); if (mi !== token) return;
+    }
+  }
+  function entrarOnline() {
+    S.ronda = 0; nuevaCarrera(); auto = true; sync();
+    lobbyActivo = true; ultimoInicio = null;
+    Online.entrar(M.codigoSala(S.sala).slice(0, 8), S.partida.map(p => ({ nombre: p.nombre, palo: p.palo })), {
+      alCambiar: pintarLobby,
+      alInicio: p => {
+        if (ultimoInicio && ultimoInicio.n === p.n && ultimoInicio.inicio === p.inicio) return;
+        lobbyActivo = false; ultimoInicio = p; disputar(p.n, p.inicio);
+      },
+      alUnirse: () => { if (Online.soyAnfitrion() && ultimoInicio && ahora() < ultimoInicio.inicio + 3000) Online.enviarInicio(ultimoInicio); },
+      alError: () => avisar('Sin conexión con la sala. Reintentando…')
+    });
+    pintarLobby([]);
+  }
+
   async function correrSala() {
     const sala = S.sala;
     let n = 0, ini = M.inicioDeSlot(sala.slot, ahora());
@@ -701,7 +754,7 @@
   };
   $('btnCrearSala').onclick = crearSala;
   $('btnIrMesa').onclick = () => { if (S.salaCreada) entrarSala(S.salaCreada); };
-  $('btnWhats').onclick = () => { if (!S.salaCreada) return; const c = S.salaCreada; window.open('https://wa.me/?text=' + encodeURIComponent(`Carrera de caballos, sala ${codigoLegible(c)} (sale a las ${fmtHora(M.inicioDeSlot(c.slot, ahora()))}): ${enlaceSala(c)}`), '_blank'); };
+  $('btnWhats').onclick = () => { if (!S.salaCreada) return; const c = S.salaCreada; window.open('https://wa.me/?text=' + encodeURIComponent(`Carrera de caballos, sala ${codigoLegible(c)} ${c.slot != null ? '(sale a las ' + fmtHora(M.inicioDeSlot(c.slot, ahora())) + ')' : ''}: ${enlaceSala(c)}`), '_blank'); };
   $('btnCopiarCodigo').onclick = async () => { if (!S.salaCreada) return; avisar((await copiar(M.codigoSala(S.salaCreada))) ? 'Código copiado' : 'No se ha podido copiar'); };
   $('btnCopiarEnlace').onclick = async () => {
     if (!S.salaCreada) return;
@@ -760,6 +813,8 @@
     if (id === 'cSeguir') seguirCarrera();
     else if (id === 'cRevancha' || id === 'cNuevoCamp') revancha();
     else if (id === 'cSiguiente') siguienteRonda();
+    else if (id === 'cEmpezarOnline') Online.enviarInicio({ n: 0, inicio: ahora() + 6000 });
+    else if (id === 'cOtraOnline') Online.enviarInicio({ n: S.ronda + 1, inicio: ahora() + 8000 });
     else if (id === 'cFin') { token++; S.sala = null; ir('menu'); }
   });
 
