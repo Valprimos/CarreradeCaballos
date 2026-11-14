@@ -463,3 +463,38 @@ dialog .vista-previa .fc{--w:64px}
 @media (orientation:landscape) and (max-height:620px){
   .fan .fc{--w:clamp(54px,10vw,84px)}
 }
+
+/* ===== v10: herraduras como C del título; ordenador con el diseño apilado (pista ancha arriba, mesa debajo) ===== */
+.hc{display:inline-block;height:.8em;width:auto;vertical-align:-.06em;margin:0 .03em 0 .01em;filter:drop-shadow(0 4px 0 rgba(0,0,0,.45))}
+
+@media (min-width:1000px) and (min-height:680px){
+  body.playing{display:block;height:auto;min-height:100vh;overflow:visible}
+  .playing main{display:block;max-width:1180px;margin:0 auto;min-height:0}
+  #vJuego{display:block}
+  #vJuego .barra-sala{display:flex}
+  #vJuego .panel.plano{container-type:inline-size;flex:none;padding:6px 10px;margin-bottom:14px}
+  .track{height:auto;
+    grid-template-columns:64px repeat(var(--n),minmax(0,1fr))!important;
+    --cw:max(30px,min(100px,calc((100cqw - 84px)/var(--n) - 8px),calc((100dvh - 410px - var(--lanes)*10px)/(1.526*(var(--lanes) + .8)))))}
+  .lane-label .mini{width:40px}
+  .th{font-size:.7rem;letter-spacing:.22em;padding:10px 0 6px;overflow:visible}
+  .cell{min-height:calc(var(--cw)*1.526 + 12px);padding:4px 0}
+  .cell.chk{min-height:calc(var(--cw)*1.19 + 10px)}
+  .puesto{top:6px;right:6px;font-size:.95rem;padding:.15em .6em}
+
+  #vJuego .table-row{--dk:clamp(84px,15dvh,130px);display:flex;flex-wrap:nowrap;align-items:flex-start;gap:30px;width:auto;margin:0 0 14px;overflow:visible}
+  .stack{font-size:.7rem}
+  .side{display:block;flex:1 1 0}
+  .side h2{display:block;font-size:1.1rem;margin-bottom:6px}
+  .bets{display:block;margin-bottom:12px;font-size:.95rem}
+  .bets li{background:none;border-radius:0;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.1)}
+  .bets li>span:nth-child(2){display:inline}
+  .bets .chips{margin-left:auto;font-size:1rem}
+  .side .acciones-fila{display:flex;flex-direction:row;flex-wrap:wrap;gap:10px}
+  .side .acciones-fila button,.side .acciones-fila select{width:auto;padding:.5em 1.1em;font-size:.95rem}
+  #log{font-size:.9rem;margin-top:12px}
+  #log li:nth-child(n+2){display:list-item}
+  #log li:nth-child(n+4){display:none}
+
+  .cartel{position:relative;left:auto;bottom:auto;transform:none;width:auto;max-height:none;overflow:hidden;margin-bottom:18px;animation:cartel .7s cubic-bezier(.2,1.4,.4,1) both}
+}

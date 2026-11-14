@@ -1,5 +1,5 @@
 /* Modo sin conexión. Sube el número de VERSION cuando cambies cualquier fichero. */
-const VERSION = 'carrera-v9';
+const VERSION = 'carrera-v10';
 const NUCLEO = [
   "./",
   "index.html",
@@ -7,11 +7,13 @@ const NUCLEO = [
   "motor.js",
   "app.js",
   "manifest.json",
-  "favicon.png",
+  "favicon-32.png",
+  "apple-touch-icon.png",
+  "herradura.svg",
   "logo.svg",
   "social.png",
-  "icons/Icon-192.png",
-  "icons/Icon-512.png",
+  "icons/icono-192.png",
+  "icons/icono-512.png",
   "bastos/card_clubs_01.webp",
   "bastos/card_clubs_02.webp",
   "bastos/card_clubs_03.webp",
