@@ -503,3 +503,15 @@ dialog .vista-previa .fc{--w:64px}
 h1{text-wrap:balance}
 .pal{white-space:nowrap}
 .hc{height:.78em;width:auto;max-width:1.1em;margin:0 .04em 0 0;vertical-align:-.05em}
+
+/* ===== v12: logo pulsable y modos del menú en una sola fila en ordenador ===== */
+#marca{cursor:pointer;display:inline-flex;transition:transform .15s}
+#marca:hover{transform:scale(1.07)}
+#marca:active{transform:scale(.95)}
+@media (min-width:1000px){
+  main{max-width:1180px}
+  .modos{grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+  .modo{padding:18px;min-height:220px}
+  .modo b{font-size:1.3rem}
+  .modo span.desc{font-size:.9rem}
+}

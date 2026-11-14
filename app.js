@@ -780,6 +780,10 @@
     }
   };
   $('credBtn').onclick = () => $('cred').showModal();
+  // El logo de las dos herraduras también lleva al menú principal (con la misma confirmación si hay carrera).
+  $('marca').setAttribute('role', 'button'); $('marca').tabIndex = 0; $('marca').setAttribute('aria-label', 'Ir al menú principal');
+  $('marca').onclick = () => $('btnMenu').click();
+  $('marca').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('btnMenu').click(); } };
   $('giroOk').onclick = ocultarGiro;
   if (mqVertical) { const hG = e => { if (!e.matches) ocultarGiro(); }; if (mqVertical.addEventListener) mqVertical.addEventListener('change', hG); else if (mqVertical.addListener) mqVertical.addListener(hG); }
 
