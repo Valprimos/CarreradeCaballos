@@ -30,7 +30,7 @@
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="estilos.css?v=18">
+<link rel="stylesheet" href="estilos.css?v=19">
 </head>
 <body>
 <noscript>
@@ -58,7 +58,7 @@
 
 <main id="app">
   <div class="top">
-    <div class="acciones"><button id="btnAjustes" class="ghost chico">Ajustes</button></div>
+    <div class="acciones"><button id="btnAjustes" class="ghost chico">Ajustes</button><button id="btnSonido" class="ghost chico" hidden>Sonido: sí</button></div>
     <span class="marca" id="marca"><img class="logo" src="logo.svg" alt="Carrera de caballos"></span>
     <button id="btnMenu" class="ghost chico" hidden>Menú principal</button>
   </div>
@@ -222,6 +222,9 @@
 <dialog id="dAjustes" aria-labelledby="ajT">
   <h2 id="ajT">Ajustes</h2>
   <label class="ajuste"><input type="checkbox" id="ajVibra"> Vibración al destapar una carta a mano</label>
+  <label class="ajuste"><input type="checkbox" id="ajMusica"> Música al empezar una partida</label>
+  <label class="ajuste"><input type="checkbox" id="ajEfectos"> Efectos de sonido</label>
+  <label class="ajuste">Volumen <input type="range" id="ajVol" min="0" max="100" style="flex:1"></label>
   <label class="ajuste"><input type="checkbox" id="ajPantalla"> Mantener la pantalla encendida durante la carrera</label>
   <p class="nota" style="margin:2px 0 8px">En iPhone la vibración es un toque háptico suave y depende de la versión de iOS.</p>
   <h2 style="margin-top:18px">Mesa y baraja</h2>
@@ -261,6 +264,7 @@
   <p>Ilustraciones de las cartas: baraja española de <a href="https://commons.wikimedia.org/wiki/User:Basquetteur" rel="noopener">Basquetteur</a> (Wikimedia Commons), en la versión vectorial SVG de la colección <a href="https://github.com/gjenkins20/spanish-playing-cards-svg" rel="noopener">spanish-playing-cards-svg</a>.</p>
   <p>Licencia: <a href="https://creativecommons.org/licenses/by-sa/3.0/deed.es" rel="noopener">Creative Commons Atribución-CompartirIgual 3.0 (CC BY-SA 3.0)</a>. Las cartas (SVG y WebP) de las carpetas <code>oros</code>, <code>copas</code>, <code>espadas</code>, <code>bastos</code> y <code>dorso</code> se distribuyen bajo esa misma licencia.</p>
   <p>Las imágenes se han adaptado para utilizar únicamente una baraja de 40 cartas (sin los ochos ni los nueves). Las ilustraciones no se han modificado: el juego las muestra como imágenes WebP renderizadas a partir de los SVG originales, que también se incluyen en cada carpeta. Los dorsos de colores se obtienen aplicando un filtro de color en pantalla.</p>
+  <p>Música de inicio: «La Carrera de Caballos – Musicograma», de Profe Entre Cuerdas. Los efectos de sonido se generan en el propio navegador.</p>
   <p>Las reglas, los modos de juego, el campeonato y las salas por código se basan en la versión Flutter de <a href="https://github.com/Danielgrs18/CarreraDeCaballos" rel="noopener">Danielgrs18/CarreraDeCaballos</a>.</p>
   <form method="dialog"><button class="ghost">Cerrar</button></form>
 </dialog>
@@ -280,10 +284,11 @@
 
 <div id="aviso" class="aviso" hidden role="status"></div>
 
-<script src="motor.js?v=18"></script>
+<script src="motor.js?v=19"></script>
+<script src="sonido.js?v=19"></script>
 <script src="vendor/supabase.js"></script>
 <script src="config.js"></script>
-<script src="online.js?v=18"></script>
-<script src="app.js?v=18"></script>
+<script src="online.js?v=19"></script>
+<script src="app.js?v=19"></script>
 </body>
 </html>

@@ -53,7 +53,7 @@
     violeta:    { n: 'Violeta',     src: 'dorso/back_violeta.webp',    f: 'none' }
   };
   const ajustes = Object.assign(
-    { pano: 'verde', dorso: 'indigo', vibracion: true, pantalla: true, velocidad: 'normal', auto: false },
+    { pano: 'verde', dorso: 'indigo', vibracion: true, pantalla: true, velocidad: 'normal', auto: false, musica: true, efectos: true, volumen: .6 },
     LS.get('carrera_ajustes', {})
   );
   if (!PANOS[ajustes.pano]) ajustes.pano = 'verde';
@@ -203,6 +203,8 @@
     if (v === 'juego') pedirPantalla(); else soltarPantalla();
     actualizarBarras();
     // Sugerencia puntual (no permanente) para pantallas verticales.
+    if (v !== 'juego') Musica.parar(false);
+    $('btnSonido').hidden = v !== 'juego';
     if (v === 'menu' || v === 'amigos') Online.salir();
     if (v !== 'juego') ocultarGiro();
     else if (mqVertical && mqVertical.matches && !avisoRotar) { avisoRotar = true; mostrarGiro(); }
@@ -433,7 +435,8 @@
     token++; busy = false; auto = false; fase = 'corriendo';
     seguir = S.modo === 'campeonato' || enVivo(); ganadorLiquidado = false;
     hist = []; turnoN = 0;
-    espera = ajustes.auto && !enVivo();   // en automático, la carrera no arranca hasta pulsar Empezar
+    espera = ajustes.auto && !enVivo();
+    if (!enVivo()) Musica.iniciar();   // en automático, la carrera no arranca hasta pulsar Empezar
     carrera = new Carrera({
       pasos: pasosEfectivos(),
       palos: M.palosEnCarrera(S.modo, S.par),
@@ -536,12 +539,13 @@
     const el = fc(r.carta, { cls: 'deal' });
     $('last').replaceChildren(el);
     await preload(src(r.carta)); if (mi !== token) return;
-    el.classList.add('up');
+    el.classList.add('up'); Sonido.carta();
     await w(1000); if (mi !== token) return;
 
     const nom = nombreCarta(r.carta);
     let abreCartel = false;
     if (r.avanza) {
+      Sonido.casco();
       moverCaballos(r.posTrasAvance);
       decir(`Sale el ${nom}: avanza el caballo de ${minus(r.carta.palo)}.`);
     } else {
@@ -549,10 +553,10 @@
     }
     if (r.llegada) {
       const puesto = carrera.clasificacion.indexOf(r.llegada) + 1;
-      ponerPuesto(r.llegada, puesto + 'º', puesto === 1 ? 'p1' : '');
+      ponerPuesto(r.llegada, puesto + 'º', puesto === 1 ? 'p1' : ''); Sonido.llegada();
       decir(`El caballo de ${minus(r.llegada)} cruza la meta en ${puesto}.º lugar.`);
       if (r.ganador) {
-        horseEls[r.llegada].classList.add('win');
+        horseEls[r.llegada].classList.add('win'); Sonido.ganador(); Musica.parar(true);
         liquidarFichas(r.ganador);
         if (ajustes.vibracion && navigator.vibrate) navigator.vibrate([60, 40, 120]);
         abreCartel = !seguir;
@@ -562,9 +566,10 @@
     await w(550); if (mi !== token) return;
 
     for (const rev of r.revelaciones) {
-      chkEls[rev.paso - 1].classList.add('up');
+      chkEls[rev.paso - 1].classList.add('up'); Sonido.carta();
       await w(1050); if (mi !== token) return;
       if (rev.retrocede) {
+        Sonido.retroceso();
         moverCaballos(rev.posDespues);
         decir(`Control ${rev.paso}: se voltea el ${nombreCarta(rev.carta)} y el caballo de ${minus(rev.carta.palo)} retrocede.`);
       } else {
@@ -641,7 +646,7 @@
   }
 
   function terminar() {
-    fase = 'fin'; auto = false; busy = false; sync();
+    fase = 'fin'; auto = false; busy = false; sync(); Musica.parar(true);
     carrera.descolgados.forEach(id => { horseEls[id].classList.add('colgado'); ponerPuesto(id, 'Parado'); });
     const sinGanador = !carrera.ganador;
     if (S.camp) S.camp.anotar(carrera);
@@ -723,7 +728,7 @@
       $('cuentaT').textContent = `La carrera sale en ${Math.max(0, Math.ceil((ini - ahora()) / 1000))} s`;
       await sleep(250); if (mi !== token) return;
     }
-    $('cartel').hidden = true; onlListo = true; sync();
+    $('cartel').hidden = true; onlListo = true; sync(); Sonido.ya(); Musica.iniciar();
     bombear(mi); conducir(mi);
   }
   // Modo manual: el anfitrión avisa «ya van N cartas» y cada móvil las va destapando hasta ponerse al día
@@ -936,10 +941,19 @@
   /* ajustes y créditos */
   $('btnAjustes').onclick = () => {
     pintarPersonalizar();
-    $('ajVibra').checked = ajustes.vibracion; $('ajPantalla').checked = ajustes.pantalla;
+    $('ajVibra').checked = ajustes.vibracion;
+    $('ajMusica').checked = ajustes.musica; $('ajEfectos').checked = ajustes.efectos; $('ajVol').value = Math.round(ajustes.volumen * 100); $('ajPantalla').checked = ajustes.pantalla;
     $('dAjustes').showModal();
   };
   $('ajVibra').onchange = e => { ajustes.vibracion = e.target.checked; guardarAjustes(); if (e.target.checked) haptico(); };
+  $('ajMusica').onchange = e => { ajustes.musica = e.target.checked; guardarAjustes(); Sonido.actualizar(); };
+  $('ajEfectos').onchange = e => { ajustes.efectos = e.target.checked; guardarAjustes(); if (e.target.checked) Sonido.ya(); };
+  $('ajVol').oninput = e => { ajustes.volumen = e.target.value / 100; guardarAjustes(); Sonido.actualizar(); };
+  $('ajVol').onchange = () => Sonido.clic();
+  $('btnSonido').onclick = () => { $('btnSonido').textContent = 'Sonido: ' + (Sonido.alternarSilencio() ? 'no' : 'sí'); };
+  // El primer toque desbloquea el audio (hace falta en iPhone) y todos los botones suenan.
+  document.addEventListener('pointerdown', () => Sonido.desbloquear(), { once: true });
+  document.addEventListener('click', e => { if (e.target.closest && e.target.closest('button') && !e.target.closest('#deck')) Sonido.clic(); }, true);
   $('ajPantalla').onchange = e => {
     ajustes.pantalla = e.target.checked; guardarAjustes();
     if (!ajustes.pantalla) soltarPantalla(); else if (vista === 'juego') pedirPantalla();
@@ -966,6 +980,7 @@
       } catch (e) { /* sin red: reloj del móvil */ }
     })();
   }
+  Sonido.usar(ajustes);
   aplicarTema();
   abanico();
   ir('menu');

@@ -1,18 +1,19 @@
 /* Modo sin conexión. Sube el número de VERSION cuando cambies cualquier fichero. */
-const VERSION = 'carrera-v18';
+const VERSION = 'carrera-v19';
 const NUCLEO = [
   "./",
   "index.html",
-  "estilos.css?v=18",
-  "motor.js?v=18",
-  "app.js?v=18",
+  "estilos.css?v=19",
+  "motor.js?v=19",
+  "app.js?v=19",
   "manifest.json",
   "favicon-32.png",
   "apple-touch-icon.png",
   "herradura.svg",
   "vendor/supabase.js",
   "config.js",
-  "online.js?v=18",
+  "online.js?v=19",
+  "sonido.js?v=19",
   "logo.svg",
   "social.png",
   "icons/icono-192.png",
@@ -74,7 +75,7 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  if (req.method !== 'GET' || req.headers.has('range') || new URL(req.url).origin !== location.origin) return;   // el audio va directo a la red
   const esCodigo = req.mode === 'navigate' || /\.(html|js|css|json)$/.test(new URL(req.url).pathname);
   if (esCodigo) {
     // Primero la red, para que una versión nueva llegue enseguida; la caché es el respaldo sin conexión.
