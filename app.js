@@ -951,6 +951,8 @@
   ir('menu');
   const enlace = new URLSearchParams(location.search).get('sala');
   if (enlace) {
+    // El código del enlace se usa una sola vez: se quita de la dirección para que al refrescar no vuelva a la sala.
+    try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* nada */ }
     const sala = M.leerCodigo(enlace);
     if (sala) { entrarSala(sala); avisar('Entras en la sala ' + codigoLegible(sala)); }
     else avisar('El código del enlace no es válido.');
