@@ -1,5 +1,5 @@
 /* Modo sin conexión. Sube el número de VERSION cuando cambies cualquier fichero. */
-const VERSION = 'carrera-v8';
+const VERSION = 'carrera-v9';
 const NUCLEO = [
   "./",
   "index.html",
@@ -8,6 +8,7 @@ const NUCLEO = [
   "app.js",
   "manifest.json",
   "favicon.png",
+  "logo.svg",
   "social.png",
   "icons/Icon-192.png",
   "icons/Icon-512.png",

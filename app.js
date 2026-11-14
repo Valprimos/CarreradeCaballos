@@ -65,7 +65,7 @@
     pasos: LIMITES.pasos.defecto,
     rondas: LIMITES.rondas.defecto,
     sala: null,                 // sala en la que se juega, si la hay
-    borrador: { modalidad: 'rapida', pasos: LIMITES.pasos.defecto, rondas: LIMITES.rondas.defecto, palos: ['oros', 'copas'] },
+    borrador: { modalidad: 'rapida', pasos: LIMITES.pasos.defecto, rondas: LIMITES.rondas.defecto, palos: ['oros', 'copas'], hora: '2' },
     salaCreada: null,
     // partida en curso
     partida: [], par: ['oros', 'copas'], semillaBase: nuevaSemilla(), ronda: 0, camp: null
@@ -101,6 +101,12 @@
     }
   };
 
+  /* ---------- reloj compartido (salas en vivo) ---------- */
+  let offsetReloj = 0;
+  const ahora = () => Date.now() + offsetReloj;
+  const enVivo = () => !!(S.sala && S.sala.slot != null);
+  const fmtHora = ms => new Date(ms).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
   /* ---------- avisos, diálogos, portapapeles ---------- */
   let tAviso = 0;
   function avisar(texto) {
@@ -130,7 +136,7 @@
     ? location.origin + location.pathname
     : 'https://valprimos.github.io/CarreradeCaballos/');
   const enlaceSala = s => `${baseUrl()}?sala=${M.codigoSala(s)}`;
-  const codigoLegible = s => { const c = M.codigoSala(s); return c.slice(0, 4) + ' ' + c.slice(4); };
+  const codigoLegible = s => { const c = M.codigoSala(s); return c.replace(/(.{4})(?=.)/g, '$1 '); };
 
   async function copiarSala(que) {
     if (!S.sala) return;
@@ -142,6 +148,16 @@
     }
     const ok = await copiar(que === 'codigo' ? M.codigoSala(S.sala) : enlaceSala(S.sala));
     avisar(ok ? (que === 'codigo' ? 'Código copiado' : 'Enlace copiado') : 'No se ha podido copiar');
+  }
+
+  /* ---------- vibración ---------- */
+  const hapLabel = document.createElement('label');
+  hapLabel.setAttribute('aria-hidden', 'true'); hapLabel.style.display = 'none';
+  const hapInput = document.createElement('input');
+  hapInput.type = 'checkbox'; hapInput.setAttribute('switch', '');
+  hapLabel.appendChild(hapInput); document.body.appendChild(hapLabel);
+  function haptico() {
+    try { if (navigator.vibrate) navigator.vibrate(25); else hapLabel.click(); } catch (e) { /* sin vibración */ }
   }
 
   /* ---------- pantalla encendida y vibración ---------- */
@@ -159,12 +175,12 @@
   let tGiro = 0;
   function mostrarGiro() { $('giro').hidden = false; clearTimeout(tGiro); tGiro = setTimeout(ocultarGiro, 6000); }
   function ocultarGiro() { $('giro').hidden = true; }
-  const VISTAS = { menu: 'vMenu', amigos: 'vAmigos', pers: 'vPers', config: 'vConfig', juego: 'vJuego' };
+  const VISTAS = { menu: 'vMenu', amigos: 'vAmigos', config: 'vConfig', juego: 'vJuego' };
   function ir(v) {
     vista = v;
     for (const [k, id] of Object.entries(VISTAS)) $(id).hidden = k !== v;
     $('btnMenu').hidden = v === 'menu';
-    $('marca').hidden = v === 'menu';
+    $('marca').hidden = false;
     document.body.classList.toggle('playing', v === 'juego');
     if (v === 'juego') pedirPantalla(); else soltarPantalla();
     actualizarBarras();
@@ -237,8 +253,8 @@
     $('opDorsos').innerHTML = Object.entries(DORSOS).map(([k, d]) =>
       `<button type="button" role="radio" aria-checked="${ajustes.dorso === k}" class="opcion ${ajustes.dorso === k ? 'on' : ''}" data-dorso="${k}"><span class="muestra" style="--bg:${d.s}"></span>${d.n}</button>`).join('');
     const vp = $('vistaPrevia'); vp.innerHTML = '';
-    vp.appendChild(fc({ palo: 'oros', valor: 11 }, { w: 96 }));
-    const h = fc({ palo: 'espadas', valor: 11 }, { w: 96, up: true }); vp.appendChild(h);
+    vp.appendChild(fc({ palo: 'oros', valor: 11 }, { w: 64 }));
+    const h = fc({ palo: 'espadas', valor: 11 }, { w: 64, up: true }); vp.appendChild(h);
   }
 
   /* ---------- crear / unirse a sala ---------- */
@@ -262,6 +278,7 @@
     };
     [
       seg('segSalaModo', M.MODALIDADES.map(m => [m.id, m.nombre]), () => b.modalidad, v => { b.modalidad = v; refrescaFilas(); }),
+      seg('segSalaHora', [['1', 'En 1 min'], ['2', 'En 2 min'], ['5', 'En 5 min'], ['10', 'En 10 min']], () => b.hora, v => { b.hora = v; }),
       rango('salaPasos', 'salaPasosV', () => b.pasos, v => { b.pasos = v; }),
       rango('salaRondas', 'salaRondasV', () => b.rondas, v => { b.rondas = v; })
     ];
@@ -280,12 +297,13 @@
   function mostrarSalaCreada() {
     $('salaCreada').hidden = false;
     $('salaCodigo').textContent = codigoLegible(S.salaCreada);
-    $('salaDescr').textContent = describirSala(S.salaCreada) + ' Pásalo por WhatsApp o dicta el código: todos verán la misma carrera.';
+    $('salaDescr').textContent = describirSala(S.salaCreada) + ' Sale a las ' + fmtHora(M.inicioDeSlot(S.salaCreada.slot, ahora())) + ': todos los móviles de la sala corren a la vez.';
   }
   function crearSala() {
     const b = S.borrador, fija = !(b.modalidad === 'personalizada' || b.modalidad === 'campeonato');
     S.salaCreada = M.nuevaSala({
-      modalidad: b.modalidad, pasos: fija ? PASOS_FIJOS : b.pasos, rondas: b.rondas, palos: [...b.palos]
+      modalidad: b.modalidad, pasos: fija ? PASOS_FIJOS : b.pasos, rondas: b.rondas, palos: [...b.palos],
+      slot: M.slotDe(Math.ceil((ahora() + (+b.hora) * 60000) / 120000) * 120000)
     });
     mostrarSalaCreada();
   }
@@ -297,7 +315,7 @@
     const sala = M.leerCodigo(texto);
     const err = $('errCodigo');
     if (!sala) {
-      err.textContent = 'Ese código no es válido: tiene que tener 8 caracteres (letras sin I, L, O ni U, y números).';
+      err.textContent = 'Ese código no es válido: revisa que tenga 8 o 10 caracteres (letras sin I, L, O ni U, y números).';
       err.hidden = false; return false;
     }
     err.hidden = true;
@@ -349,6 +367,10 @@
       rango('inRondas', 'inRondasV', () => S.rondas, v => { S.rondas = v; }, () => !!S.sala)
     ];
     $('rowSpeed').hidden = !ajustes.auto;
+    const vivo = enVivo();
+    $('segMode').parentElement.hidden = vivo; if (vivo) $('rowSpeed').hidden = true;
+    $('start').textContent = vivo ? 'Entrar a la salida' : 'Empezar carrera';
+    if (vivo) $('cfgReglas').textContent += ' Sala en vivo: la carrera es simultánea en todos los móviles.';
     renderFilas();
     ir('config');
   }
@@ -375,6 +397,7 @@
     S.ronda = 0;
     S.camp = S.modo === 'campeonato' ? new Campeonato({ rondas: S.rondas, jugadores: S.partida }) : null;
     ir('juego');
+    if (enVivo()) { correrSala(); return; }
     nuevaCarrera();
   }
 
@@ -383,9 +406,9 @@
 
   function nuevaCarrera() {
     token++; busy = false; auto = false; fase = 'corriendo';
-    seguir = S.modo === 'campeonato'; ganadorLiquidado = false;
+    seguir = S.modo === 'campeonato' || enVivo(); ganadorLiquidado = false;
     hist = []; turnoN = 0;
-    espera = ajustes.auto;   // en automático, la carrera no arranca hasta pulsar Empezar
+    espera = ajustes.auto && !enVivo();   // en automático, la carrera no arranca hasta pulsar Empezar
     carrera = new Carrera({
       pasos: pasosEfectivos(),
       palos: M.palosEnCarrera(S.modo, S.par),
@@ -468,7 +491,7 @@
     $('auto').classList.toggle('rojo', espera);
     $('auto').classList.toggle('ghost', !espera);
     $('auto').disabled = !corriendo;
-    $('spd').hidden = !auto; $('spd').value = ajustes.velocidad;
+    $('spd').hidden = !auto || enVivo(); $('auto').hidden = enVivo(); $('spd').value = ajustes.velocidad;
   }
   function setAuto(v) { auto = v; sync(); if (v && !busy && fase === 'corriendo') sacar(); }
 
@@ -476,7 +499,7 @@
   async function sacar() {
     if (busy || fase !== 'corriendo' || !carrera || carrera.agotada) return;
     busy = true; const mi = token;
-    const f = auto ? SPEEDS[ajustes.velocidad] : .9, w = ms => sleep(ms * f);
+    const f = enVivo() ? 1.4 : auto ? SPEEDS[ajustes.velocidad] : .9, w = ms => sleep(ms * f);
     if (!RM) document.documentElement.style.setProperty('--flip', (.75 * f) + 's');
 
     const r = carrera.jugarTurno();
@@ -504,6 +527,7 @@
       if (r.ganador) {
         horseEls[r.llegada].classList.add('win');
         liquidarFichas(r.ganador);
+        if (ajustes.vibracion && navigator.vibrate) navigator.vibrate([60, 40, 120]);
         abreCartel = !seguir;
       }
     }
@@ -528,7 +552,7 @@
     if (abreCartel) { cartelGanador(); return; }
     sync();
     if (carrera.mazo.length) preload(src(carrera.mazo[carrera.mazo.length - 1]));
-    if (auto) setTimeout(() => { if (mi === token) sacar(); }, 800 * f);
+    if (auto && !enVivo()) setTimeout(() => { if (mi === token) sacar(); }, 800 * f);
   }
 
   /* historial resumido: una línea por carta, lo más reciente arriba */
@@ -610,6 +634,7 @@
         <div class="acciones-fila"><button id="cRevancha">Revancha</button><button id="cFin" class="ghost">Finalizar</button></div>`;
     }
     $('cartel').innerHTML = html; $('cartel').hidden = false;
+    if (enVivo()) { $('cartel').querySelectorAll('button:not(#cFin)').forEach(b => b.remove()); $('cartel').insertAdjacentHTML('beforeend', '<p id="cuenta"></p>'); }
     pintarLista(); $('cartel').scrollIntoView({ block: 'nearest', behavior: RM ? 'auto' : 'smooth' });
   }
 
@@ -630,11 +655,45 @@
   }
   function siguienteRonda() { S.ronda++; nuevaCarrera(); }
 
+  /* Sala en vivo: cada carta sale a una hora fija calculada con la semilla de la sala,
+     así que todos los móviles ven la misma carrera a la vez. Las carreras se encadenan solas. */
+  async function correrSala() {
+    const sala = S.sala;
+    let n = 0, ini = M.inicioDeSlot(sala.slot, ahora());
+    for (;;) {                                   // si llegas tarde, esperas a la siguiente carrera
+      const fin = ini + M.planCarrera(sala, n).total;
+      if (ahora() < ini + 3000) break;
+      n++; ini = M.siguienteInicio(fin);
+    }
+    for (;;) {
+      if (S.camp && n >= S.camp.rondas) { avisar('Este campeonato de sala ya ha terminado.'); return; }
+      S.ronda = n; nuevaCarrera();
+      const mi = token, plan = M.planCarrera(sala, n);
+      $('cartel').innerHTML = '<h2 id="cuentaT"></h2><p>Todos los móviles de la sala salen a la vez.</p>'; $('cartel').hidden = false;
+      while (ahora() < ini) {
+        $('cuentaT').textContent = `La carrera sale en ${Math.max(0, Math.ceil((ini - ahora()) / 1000))} s`;
+        await sleep(250); if (mi !== token) return;
+      }
+      $('cartel').hidden = true; auto = true; sync();
+      for (const t of plan.inicios) {
+        while (ahora() < ini + t) { await sleep(40); if (mi !== token) return; }
+        while (busy) { await sleep(20); if (mi !== token) return; }
+        await sacar(); if (mi !== token) return;
+      }
+      const sig = M.siguienteInicio(ini + plan.total);
+      n++; if (S.camp && n >= S.camp.rondas) return;
+      ini = sig;
+      while (ahora() < ini) {
+        const c = $('cuenta');
+        if (c) c.textContent = `Siguiente carrera a las ${fmtHora(ini)} (en ${Math.max(0, Math.ceil((ini - ahora()) / 1000))} s)`;
+        await sleep(250); if (mi !== token) return;
+      }
+    }
+  }
+
   /* ---------- eventos ---------- */
   document.querySelectorAll('.modo[data-modo]').forEach(b => { b.onclick = () => abrirConfig(b.dataset.modo); });
   $('btnAmigos').onclick = () => { pintarAmigos(); ir('amigos'); };
-  $('btnPers').onclick = () => { pintarPersonalizar(); ir('pers'); };
-  $('btnPersVolver').onclick = () => ir('menu');
   $('btnMenu').onclick = async () => {
     if (!(await salirSiSeguro('Si sales ahora, se pierde la carrera en marcha.'))) return;
     S.sala = null;
@@ -642,6 +701,7 @@
   };
   $('btnCrearSala').onclick = crearSala;
   $('btnIrMesa').onclick = () => { if (S.salaCreada) entrarSala(S.salaCreada); };
+  $('btnWhats').onclick = () => { if (!S.salaCreada) return; const c = S.salaCreada; window.open('https://wa.me/?text=' + encodeURIComponent(`Carrera de caballos, sala ${codigoLegible(c)} (sale a las ${fmtHora(M.inicioDeSlot(c.slot, ahora()))}): ${enlaceSala(c)}`), '_blank'); };
   $('btnCopiarCodigo').onclick = async () => { if (!S.salaCreada) return; avisar((await copiar(M.codigoSala(S.salaCreada))) ? 'Código copiado' : 'No se ha podido copiar'); };
   $('btnCopiarEnlace').onclick = async () => {
     if (!S.salaCreada) return;
@@ -685,7 +745,7 @@
 
   $('deck').onclick = () => {
     if (espera) espera = false; else if (auto) return;
-    if (ajustes.vibracion && navigator.vibrate) navigator.vibrate(25);
+    if (ajustes.vibracion) haptico();
     sacar();
   };
   $('btnHist').onclick = abrirHistorial;
@@ -705,10 +765,11 @@
 
   /* ajustes y créditos */
   $('btnAjustes').onclick = () => {
+    pintarPersonalizar();
     $('ajVibra').checked = ajustes.vibracion; $('ajPantalla').checked = ajustes.pantalla;
     $('dAjustes').showModal();
   };
-  $('ajVibra').onchange = e => { ajustes.vibracion = e.target.checked; guardarAjustes(); };
+  $('ajVibra').onchange = e => { ajustes.vibracion = e.target.checked; guardarAjustes(); if (e.target.checked) haptico(); };
   $('ajPantalla').onchange = e => {
     ajustes.pantalla = e.target.checked; guardarAjustes();
     if (!ajustes.pantalla) soltarPantalla(); else if (vista === 'juego') pedirPantalla();
@@ -723,6 +784,14 @@
   if (mqVertical) { const hG = e => { if (!e.matches) ocultarGiro(); }; if (mqVertical.addEventListener) mqVertical.addEventListener('change', hG); else if (mqVertical.addListener) mqVertical.addListener(hG); }
 
   /* ---------- arranque ---------- */
+  if (/^https?:$/.test(location.protocol)) {      // ajusta el reloj con la hora del servidor
+    (async () => {
+      try {
+        const t0 = Date.now(), r = await fetch(location.href, { method: 'HEAD', cache: 'no-store' }), t1 = Date.now();
+        const d = r.headers.get('Date'); if (d) offsetReloj = new Date(d).getTime() + 500 - (t0 + t1) / 2;
+      } catch (e) { /* sin red: reloj del móvil */ }
+    })();
+  }
   aplicarTema();
   abanico();
   ir('menu');

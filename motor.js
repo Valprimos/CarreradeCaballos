@@ -266,25 +266,30 @@
 
   function nuevaSala({ modalidad = 'rapida', pasos = LIMITES.pasos.defecto,
                        rondas = LIMITES.rondas.defecto, palos = ['oros', 'copas'],
-                       rng = Math.random } = {}) {
-    return { modalidad, pasos, rondas, palos, semilla: Math.floor(rng() * LIMITE_SEMILLA) };
+                       rng = Math.random, slot = null } = {}) {
+    const s = { modalidad, pasos, rondas, palos, semilla: Math.floor(rng() * LIMITE_SEMILLA) };
+    if (slot != null) s.slot = slot;
+    return s;
   }
 
   function codigoSala(s) {
     const extra = s.modalidad === 'uno' ? indiceDelPar(s.palos)
                 : s.modalidad === 'campeonato' ? s.rondas : 0;
     return aBase32(MODALIDADES.findIndex(m => m.id === s.modalidad), 1) +
-           aBase32(s.pasos, 1) + aBase32(extra, 1) + aBase32(s.semilla, LARGO_SEMILLA);
+           aBase32(s.pasos, 1) + aBase32(extra, 1) + aBase32(s.semilla, LARGO_SEMILLA) +
+           (s.slot != null ? aBase32(s.slot, 2) : '');
   }
 
   /** Lee un código tecleado o pegado; null si no es válido. */
   function leerCodigo(texto) {
     const limpio = String(texto || '').toUpperCase()
       .replace(/[^0-9A-Z]/g, '').replace(/[IL]/g, '1').replace(/O/g, '0');
-    if (limpio.length !== LARGO_CODIGO) return null;
+    if (limpio.length !== LARGO_CODIGO && limpio.length !== LARGO_CODIGO + 2) return null;
 
     const im = deBase32(limpio[0]), pasos = deBase32(limpio[1]),
-          extra = deBase32(limpio[2]), semilla = deBase32(limpio.slice(3));
+          extra = deBase32(limpio[2]), semilla = deBase32(limpio.slice(3, LARGO_CODIGO)),
+          slot = limpio.length > LARGO_CODIGO ? deBase32(limpio.slice(LARGO_CODIGO)) : null;
+    if (limpio.length > LARGO_CODIGO && slot === null) return null;
     if ([im, pasos, extra, semilla].includes(null)) return null;
     if (im >= MODALIDADES.length) return null;
     if (pasos < LIMITES.pasos.min || pasos > LIMITES.pasos.max) return null;
@@ -299,7 +304,9 @@
       rondas = extra;
     } else if (extra !== 0) return null;
 
-    return { modalidad, pasos, rondas, palos, semilla };
+    const sala = { modalidad, pasos, rondas, palos, semilla };
+    if (slot !== null) sala.slot = slot;
+    return sala;
   }
 
   /** Semilla de la ronda indicada (desde 0): distintas entre sí, iguales para todos. */
@@ -308,10 +315,31 @@
   /** Palos que corren de verdad en una modalidad. */
   const palosEnCarrera = (modalidad, par) => (modalidad === 'uno' ? par : IDS);
 
+  /* ---------- Salas en vivo: todos los móviles siguen el mismo reloj ----------
+   * El código lleva 2 dígitos más con la hora de salida (en tramos de 2 minutos).
+   * La carrera es determinista, así que cada móvil sabe a qué hora exacta sale
+   * cada carta y todos la ven a la vez, sin servidor. */
+  const EPOCA = Date.UTC(2026, 0, 1), TRAMO = 120000, N_TRAMOS = 1024;
+  const slotDe = ms => Math.floor((ms - EPOCA) / TRAMO) % N_TRAMOS;
+  const inicioDeSlot = (slot, ahora) => {
+    const ciclo = N_TRAMOS * TRAMO, base = EPOCA + slot * TRAMO;
+    return base + Math.round((ahora - base) / ciclo) * ciclo;
+  };
+  /** Momento de salida de cada carta (ms desde el inicio) y duración total. F = factor de ritmo. */
+  function planCarrera(sala, ronda, F = 1.4) {
+    const c = new Carrera({ pasos: sala.pasos, palos: palosEnCarrera(sala.modalidad, sala.palos), rng: crearRng(semillaDeRonda(sala, ronda)) });
+    const inicios = []; let acc = 0;
+    while (!c.agotada) { const r = c.jugarTurno(); inicios.push(acc); acc += (2350 + 1600 * r.revelaciones.length) * F; }
+    return { inicios, total: acc };
+  }
+  /** La siguiente carrera sale en el próximo minuto en punto, 25 s después de acabar. */
+  const siguienteInicio = fin => Math.ceil((fin + 25000) / 60000) * 60000;
+
   return {
     PALOS, IDS, VALORES, LIMITES, MODALIDADES, NOMBRE_VALOR,
     paloDe, nombreCarta, crearRng, barajar,
     Carrera, Campeonato,
-    nuevaSala, codigoSala, leerCodigo, semillaDeRonda, palosEnCarrera
+    nuevaSala, codigoSala, leerCodigo, semillaDeRonda, palosEnCarrera,
+    slotDe, inicioDeSlot, planCarrera, siguienteInicio
   };
 });

@@ -452,3 +452,14 @@ body.playing{display:flex;flex-direction:column;min-height:100dvh;
 @media (orientation:landscape) and (max-height:620px){
   #vJuego .table-row{--dk:clamp(56px,17dvh,84px);width:clamp(150px,22vw,200px)}
 }
+
+/* ===== v9: logo, caballos más grandes en el menú, ajustes con paño y dorso ===== */
+.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center}
+.top #btnMenu{justify-self:end}
+.logo{height:36px;width:auto;display:block;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.fan .fc{--w:clamp(96px,27vw,170px)}
+dialog{max-height:90dvh;overflow:auto}
+dialog .vista-previa .fc{--w:64px}
+@media (orientation:landscape) and (max-height:620px){
+  .fan .fc{--w:clamp(54px,10vw,84px)}
+}
