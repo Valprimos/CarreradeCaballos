@@ -310,8 +310,8 @@
     });
     mostrarSalaCreada();
   }
-  function entrarSala(sala) {
-    S.sala = sala; S.modo = sala.modalidad; S.pasos = sala.pasos; S.rondas = sala.rondas;
+  function entrarSala(sala, creador = false) {
+    S.creador = creador; S.sala = sala; S.modo = sala.modalidad; S.pasos = sala.pasos; S.rondas = sala.rondas;
     abrirConfig(null);
   }
   function unirse(texto) {
@@ -504,7 +504,7 @@
   async function sacar() {
     if (busy || fase !== 'corriendo' || !carrera || carrera.agotada) return;
     busy = true; const mi = token;
-    const f = enVivo() ? (esOnline() && S.onl ? S.onl.F : 1.4) : auto ? SPEEDS[ajustes.velocidad] : .9, w = ms => sleep(ms * f);
+    const f0 = enVivo() ? (esOnline() && S.onl ? S.onl.F : 1.4) : auto ? SPEEDS[ajustes.velocidad] : .9, f = f0 * (catchup ? .25 : 1), w = ms => sleep(ms * f);
     if (!RM) document.documentElement.style.setProperty('--flip', (.75 * f) + 's');
 
     const r = carrera.jugarTurno();
@@ -665,9 +665,9 @@
   /* ---------- Sala online (Supabase): lobby y salida simultánea ----------
      El anfitrión (el primero en conectarse) manda «sale la carrera n a esta hora»; cada móvil calcula la
      carrera con la semilla de la sala y la ve a la vez. Se envían muy pocos mensajes. */
-  let lobbyActivo = false, ultimoInicio = null, ultimaLista = [], onlListo = false, turnoRecibido = 0, turnoPendiente = false;
+  let lobbyActivo = false, ultimoInicio = null, ultimaLista = [], onlListo = false, turnosObjetivo = 0, turnosJugados = 0, workerOn = false, catchup = false, ultimoIni = 0, turnoPendiente = false;
   const VEL_F = { lenta: 2, normal: 1.4, rapida: .9 };
-  const payloadInicio = (n, retraso) => ({ n, inicio: ahora() + retraso, pasos: S.onl.pasos, rondas: S.onl.rondas, auto: S.onl.auto, vel: S.onl.vel, F: VEL_F[S.onl.vel] });
+  const payloadInicio = (n, retraso) => ({ n, inicio: ahora() + retraso, retraso, pasos: S.onl.pasos, rondas: S.onl.rondas, auto: S.onl.auto, vel: S.onl.vel, F: VEL_F[S.onl.vel] });
   function pintarLobby(l) {
     if (l) ultimaLista = l; else l = ultimaLista;
     if (!lobbyActivo || !S.onl) return;
@@ -693,7 +693,7 @@
   async function disputar(n, ini, p) {
     S.onl = { pasos: p.pasos, rondas: p.rondas, auto: p.auto, vel: p.vel, F: p.F };
     if (S.camp) S.camp.rondas = p.rondas;
-    S.ronda = n; onlListo = false; turnoRecibido = 0; turnoPendiente = false;
+    S.ronda = n; onlListo = false; turnosObjetivo = 0; turnosJugados = 0; turnoPendiente = false;
     nuevaCarrera(); auto = p.auto; sync();
     const mi = token, plan = p.auto ? M.planCarrera({ ...S.sala, pasos: pasosEfectivos() }, n, p.F) : null;
     $('cartel').innerHTML = `<h2 id="cuentaT"></h2><p>${p.auto ? 'Todos los móviles de la sala salen a la vez.' : 'Modo manual: el anfitrión destapa las cartas y todos las veis a la vez.'}</p>`; $('cartel').hidden = false;
@@ -702,11 +702,26 @@
       await sleep(250); if (mi !== token) return;
     }
     $('cartel').hidden = true; onlListo = true; sync();
-    if (!p.auto) return;                       // manual: cada carta llega con un aviso del anfitrión
+    if (!p.auto) { bombear(mi); return; }                       // manual: cada carta llega con un aviso del anfitrión
     for (const t of plan.inicios) {
       while (ahora() < ini + t) { await sleep(40); if (mi !== token) return; }
       while (busy) { await sleep(20); if (mi !== token) return; }
-      await sacar(); if (mi !== token) return;
+      catchup = ahora() > ini + t + 1500; await sacar(); catchup = false; if (mi !== token) return;
+    }
+  }
+  // Modo manual: el anfitrión avisa «ya van N cartas» y cada móvil las va destapando hasta ponerse al día
+  // (si un aviso se pierde o llegas tarde, se recuperan solas y más deprisa).
+  async function bombear(mi) {
+    if (workerOn) return; workerOn = true;
+    try {
+      while (mi === token && onlListo && fase === 'corriendo' && carrera && !carrera.agotada && turnosJugados < turnosObjetivo) {
+        while (busy) { await sleep(20); if (mi !== token) return; }
+        catchup = turnosObjetivo - turnosJugados > 1; turnosJugados++;
+        await sacar();
+      }
+    } finally {
+      workerOn = false; catchup = false; turnoPendiente = false; sync();
+      if (mi === token && onlListo && turnosJugados < turnosObjetivo) bombear(mi);
     }
   }
   function entrarOnline() {
@@ -717,16 +732,19 @@
       alCambiar: l => pintarLobby(l),
       alInicio: p => {
         if (ultimoInicio && ultimoInicio.n === p.n && ultimoInicio.inicio === p.inicio) return;
-        lobbyActivo = false; ultimoInicio = p; disputar(p.n, p.inicio, p);
+        lobbyActivo = false; ultimoInicio = p; ultimoIni = ahora() + p.retraso; disputar(p.n, ultimoIni, p);
       },
       alTurno: p => {
-        if (p.n !== S.ronda || p.k !== turnoRecibido || !onlListo) return;
-        turnoRecibido++;
-        (async () => { while (busy) await sleep(20); await sacar(); turnoPendiente = false; sync(); })();
+        if (p.n !== S.ronda) return;
+        turnosObjetivo = Math.max(turnosObjetivo, p.k + 1); bombear(token);
       },
-      alUnirse: () => { if (Online.soyAnfitrion() && ultimoInicio && ahora() < ultimoInicio.inicio + 3000) Online.enviarInicio(ultimoInicio); },
+      alUnirse: () => {                      // quien entra tarde recibe el estado y se pone al día
+        if (!Online.soyAnfitrion() || !ultimoInicio) return;
+        Online.enviarInicio({ ...ultimoInicio, retraso: ultimoIni - ahora() });
+        if (!ultimoInicio.auto && turnosObjetivo > 0) Online.enviarTurno({ n: ultimoInicio.n, k: turnosObjetivo - 1 });
+      },
       alError: () => avisar('Sin conexión con la sala. Reintentando…')
-    });
+    }, S.creador);
     pintarLobby([]);
   }
 
@@ -785,7 +803,7 @@
     ir('menu');
   };
   $('btnCrearSala').onclick = crearSala;
-  $('btnIrMesa').onclick = () => { if (S.salaCreada) entrarSala(S.salaCreada); };
+  $('btnIrMesa').onclick = () => { if (S.salaCreada) entrarSala(S.salaCreada, true); };
   $('btnWhats').onclick = () => { if (!S.salaCreada) return; const c = S.salaCreada; window.open('https://wa.me/?text=' + encodeURIComponent(`Carrera de caballos, sala ${codigoLegible(c)} ${c.slot != null ? '(sale a las ' + fmtHora(M.inicioDeSlot(c.slot, ahora())) + ')' : ''}: ${enlaceSala(c)}`), '_blank'); };
   $('btnCopiarCodigo').onclick = async () => { if (!S.salaCreada) return; avisar((await copiar(M.codigoSala(S.salaCreada))) ? 'Código copiado' : 'No se ha podido copiar'); };
   $('btnCopiarEnlace').onclick = async () => {
@@ -832,7 +850,7 @@
     if (esOnline() && S.onl && !S.onl.auto) {   // online manual: solo el anfitrión destapa, y lo ven todos
       if (Online.soyAnfitrion() && onlListo && !busy && !turnoPendiente && fase === 'corriendo') {
         turnoPendiente = true; if (ajustes.vibracion) haptico();
-        Online.enviarTurno({ n: S.ronda, k: turnoRecibido });
+        Online.enviarTurno({ n: S.ronda, k: turnosObjetivo });
         setTimeout(() => { turnoPendiente = false; }, 4000);
       }
       return;

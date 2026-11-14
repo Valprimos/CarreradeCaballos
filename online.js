@@ -7,16 +7,16 @@
   const miId = Math.random().toString(36).slice(2, 10);
   let cliente = null, canal = null;
 
-  // Conectados, el que entró primero primero: ese es el anfitrión.
+  // Conectados: primero quien creó la sala (el anfitrión) y luego por orden de llegada.
   const lista = () => (canal
     ? Object.entries(canal.presenceState()).map(([id, m]) => Object.assign({ id }, m[0]))
-        .sort((a, b) => (a.t - b.t) || (a.id < b.id ? -1 : 1))
+        .sort((a, b) => ((b.creador ? 1 : 0) - (a.creador ? 1 : 0)) || (a.t - b.t) || (a.id < b.id ? -1 : 1))
     : []);
 
   window.Online = {
     disponible: () => ok,
     soyAnfitrion() { const l = lista(); return l.length > 0 && l[0].id === miId; },
-    entrar(codigo, jugadores, h) {
+    entrar(codigo, jugadores, h, creador) {
       if (!ok) return;
       this.salir();
       cliente = cliente || window.supabase.createClient(cfg.url, cfg.key);
@@ -28,7 +28,7 @@
         .on('broadcast', { event: 'inicio' }, m => h.alInicio(m.payload))
         .on('broadcast', { event: 'turno' }, m => h.alTurno(m.payload))
         .subscribe(estado => {
-          if (estado === 'SUBSCRIBED') canal.track({ t, jugadores });   // también al reconectar
+          if (estado === 'SUBSCRIBED') canal.track({ t, jugadores, creador: !!creador });   // también al reconectar
           else if (estado === 'CHANNEL_ERROR' || estado === 'TIMED_OUT') h.alError();
         });
     },
