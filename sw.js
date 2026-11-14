@@ -1,11 +1,11 @@
 /* Modo sin conexión. Sube el número de VERSION cuando cambies cualquier fichero. */
-const VERSION = 'carrera-v10';
+const VERSION = 'carrera-v11';
 const NUCLEO = [
   "./",
   "index.html",
-  "estilos.css",
-  "motor.js",
-  "app.js",
+  "estilos.css?v=11",
+  "motor.js?v=11",
+  "app.js?v=11",
   "manifest.json",
   "favicon-32.png",
   "apple-touch-icon.png",

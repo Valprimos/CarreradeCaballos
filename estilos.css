@@ -498,3 +498,8 @@ dialog .vista-previa .fc{--w:64px}
 
   .cartel{position:relative;left:auto;bottom:auto;transform:none;width:auto;max-height:none;overflow:hidden;margin-bottom:18px;animation:cartel .7s cubic-bezier(.2,1.4,.4,1) both}
 }
+
+/* ===== v11: la herradura va pegada a su palabra ===== */
+h1{text-wrap:balance}
+.pal{white-space:nowrap}
+.hc{height:.78em;width:auto;max-width:1.1em;margin:0 .04em 0 0;vertical-align:-.05em}
