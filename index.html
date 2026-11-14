@@ -30,7 +30,7 @@
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="estilos.css?v=17">
+<link rel="stylesheet" href="estilos.css?v=18">
 </head>
 <body>
 <noscript>
@@ -224,11 +224,12 @@
   <label class="ajuste"><input type="checkbox" id="ajVibra"> Vibración al destapar una carta a mano</label>
   <label class="ajuste"><input type="checkbox" id="ajPantalla"> Mantener la pantalla encendida durante la carrera</label>
   <p class="nota" style="margin:2px 0 8px">En iPhone la vibración es un toque háptico suave y depende de la versión de iOS.</p>
-  <h3 style="margin-top:14px">Paño de la mesa</h3>
-  <div class="opciones" id="opPanos" role="radiogroup" aria-label="Paño de la mesa"></div>
+  <h2 style="margin-top:18px">Mesa y baraja</h2>
+  <h3>Paño de la mesa</h3>
+  <div class="tiles" id="opPanos" role="radiogroup" aria-label="Paño de la mesa"></div>
   <h3>Dorso de la baraja</h3>
-  <div class="opciones" id="opDorsos" role="radiogroup" aria-label="Dorso de la baraja"></div>
-  <div class="vista-previa" id="vistaPrevia" aria-hidden="true"></div>
+  <div class="tiles" id="opDorsos" role="radiogroup" aria-label="Dorso de la baraja"></div>
+  <div class="mesa-prev" id="vistaPrevia" aria-hidden="true"></div>
   <details>
     <summary>Cómo se juega</summary>
     <ol>
@@ -279,10 +280,10 @@
 
 <div id="aviso" class="aviso" hidden role="status"></div>
 
-<script src="motor.js?v=17"></script>
+<script src="motor.js?v=18"></script>
 <script src="vendor/supabase.js"></script>
 <script src="config.js"></script>
-<script src="online.js?v=17"></script>
-<script src="app.js?v=17"></script>
+<script src="online.js?v=18"></script>
+<script src="app.js?v=18"></script>
 </body>
 </html>

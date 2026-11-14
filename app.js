@@ -13,7 +13,7 @@
   const minus = id => paloDe(id).nombre.toLowerCase();
   const mini = id => `<img class="mini" src="${id}/card_${paloDe(id).archivo}_01.webp" alt="">`;
   const src = c => `${c.palo}/card_${paloDe(c.palo).archivo}_${String(c.valor).padStart(2, '0')}.webp`;
-  const BACK = 'dorso/card_back.webp';
+  let BACK = 'dorso/card_back.webp';
   const RM = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion:reduce)').matches;
   const nuevaSemilla = () => Math.floor(Math.random() * Math.pow(32, 5));
   const PASOS_FIJOS = LIMITES.pasos.defecto;
@@ -24,18 +24,33 @@
   };
 
   /* ---------- ajustes guardados ---------- */
-  const PANOS = {
-    verde:   { n: 'Verde',   c: '#177A4B', m: '#0E5A38', o: '#04261a', l: '#3f9a72' },
-    burdeos: { n: 'Burdeos', c: '#8a2535', m: '#5A1522', o: '#26060d', l: '#b5586a' },
-    azul:    { n: 'Azul',    c: '#1f6290', m: '#123C57', o: '#06182a', l: '#4a93bd' },
-    grafito: { n: 'Grafito', c: '#4a545a', m: '#262C30', o: '#0b0e10', l: '#7d8a91' }
+  // Paños: color, textura y nombre. Las texturas son degradados CSS (sin imágenes).
+  const TEX = {
+    fieltro: 'repeating-linear-gradient(45deg,rgba(255,255,255,.022) 0 1px,transparent 1px 4px),repeating-linear-gradient(-45deg,rgba(0,0,0,.06) 0 1px,transparent 1px 4px)',
+    liso: 'linear-gradient(rgba(255,255,255,.015),rgba(255,255,255,.015))',
+    rombos: 'linear-gradient(45deg,rgba(255,255,255,.05) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.05) 75%) 0 0/34px 34px,linear-gradient(45deg,rgba(255,255,255,.05) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.05) 75%) 17px 17px/34px 34px',
+    puntos: 'radial-gradient(rgba(255,255,255,.09) 1.2px,transparent 1.8px) 0 0/18px 18px'
   };
-  // El dorso original es índigo: los demás se obtienen girando el tono.
+  const PANOS = {
+    verde:     { n: 'Verde casino', c: '#177A4B', m: '#0E5A38', o: '#04261a', l: '#3f9a72', t: 'fieltro' },
+    burdeos:   { n: 'Burdeos',      c: '#8a2535', m: '#5A1522', o: '#26060d', l: '#b5586a', t: 'fieltro' },
+    azul:      { n: 'Azul noche',   c: '#1f6290', m: '#123C57', o: '#06182a', l: '#4a93bd', t: 'fieltro' },
+    grafito:   { n: 'Grafito',      c: '#4a545a', m: '#262C30', o: '#0b0e10', l: '#7d8a91', t: 'liso' },
+    esmeralda: { n: 'Esmeralda',    c: '#0f8f6a', m: '#0a6a50', o: '#02261d', l: '#3fc9a0', t: 'rombos' },
+    violeta:   { n: 'Violeta',      c: '#6a3fb0', m: '#45257a', o: '#150a2e', l: '#9b78e0', t: 'puntos' },
+    oro:       { n: 'Negro y oro',  c: '#3a3016', m: '#1b170a', o: '#070604', l: '#d9a93a', t: 'rombos' },
+    oceano:    { n: 'Océano',       c: '#12808f', m: '#0c5866', o: '#031c22', l: '#4fc3d6', t: 'puntos' }
+  };
+  // Dorsos: los dos primeros usan el dibujo original (el granate lo tiñe un filtro); el resto son diseños propios.
   const DORSOS = {
-    indigo:  { n: 'Índigo',  f: 'none',                                          s: '#264066' },
-    granate: { n: 'Granate', f: 'hue-rotate(125deg) saturate(1.6)',              s: '#8A1420' },
-    bosque:  { n: 'Bosque',  f: 'hue-rotate(-95deg) saturate(1.3)',               s: '#13603C' },
-    ebano:   { n: 'Ébano',   f: 'grayscale(1) brightness(.6) contrast(1.15)',     s: '#272320' }
+    indigo:     { n: 'Índigo',      src: 'dorso/card_back.webp',       f: 'none' },
+    granate:    { n: 'Granate',     src: 'dorso/card_back.webp',       f: 'hue-rotate(125deg) saturate(1.6)' },
+    rombos:     { n: 'Rombos',      src: 'dorso/back_rombos.webp',     f: 'none' },
+    real:       { n: 'Real',        src: 'dorso/back_real.webp',       f: 'none' },
+    noche:      { n: 'Negro y oro', src: 'dorso/back_noche.webp',      f: 'none' },
+    herraduras: { n: 'Herraduras',  src: 'dorso/back_herraduras.webp', f: 'none' },
+    esmeralda:  { n: 'Esmeralda',   src: 'dorso/back_esmeralda.webp',  f: 'none' },
+    violeta:    { n: 'Violeta',     src: 'dorso/back_violeta.webp',    f: 'none' }
   };
   const ajustes = Object.assign(
     { pano: 'verde', dorso: 'indigo', vibracion: true, pantalla: true, velocidad: 'normal', auto: false },
@@ -48,7 +63,9 @@
   function aplicarTema() {
     const r = document.documentElement.style, p = PANOS[ajustes.pano];
     r.setProperty('--c', p.c); r.setProperty('--m', p.m); r.setProperty('--o', p.o); r.setProperty('--l', p.l);
-    r.setProperty('--dorso', DORSOS[ajustes.dorso].f);
+    r.setProperty('--tex', TEX[p.t]); r.setProperty('--dorso', DORSOS[ajustes.dorso].f);
+    BACK = DORSOS[ajustes.dorso].src;
+    document.querySelectorAll('img.dorso').forEach(i => { i.src = BACK; });
     const meta = $('themeColor'); if (meta) meta.setAttribute('content', p.m);
   }
 
@@ -251,12 +268,15 @@
   /* ---------- personalizar ---------- */
   function pintarPersonalizar() {
     $('opPanos').innerHTML = Object.entries(PANOS).map(([k, p]) =>
-      `<button type="button" role="radio" aria-checked="${ajustes.pano === k}" class="opcion ${ajustes.pano === k ? 'on' : ''}" data-pano="${k}"><span class="muestra" style="--bg:${p.m}"></span>${p.n}</button>`).join('');
+      `<button type="button" role="radio" aria-checked="${ajustes.pano === k}" class="tile ${ajustes.pano === k ? 'on' : ''}" data-pano="${k}"><span class="pano" style="--c:${p.c};--m:${p.m};--o:${p.o};--tex:${TEX[p.t]}"></span>${p.n}</button>`).join('');
     $('opDorsos').innerHTML = Object.entries(DORSOS).map(([k, d]) =>
-      `<button type="button" role="radio" aria-checked="${ajustes.dorso === k}" class="opcion ${ajustes.dorso === k ? 'on' : ''}" data-dorso="${k}"><span class="muestra" style="--bg:${d.s}"></span>${d.n}</button>`).join('');
+      `<button type="button" role="radio" aria-checked="${ajustes.dorso === k}" class="tile ${ajustes.dorso === k ? 'on' : ''}" data-dorso="${k}"><img class="dorso-mini" src="${d.src}" style="filter:${d.f}" alt="">${d.n}</button>`).join('');
     const vp = $('vistaPrevia'); vp.innerHTML = '';
-    vp.appendChild(fc({ palo: 'oros', valor: 11 }, { w: 64 }));
-    const h = fc({ palo: 'espadas', valor: 11 }, { w: 64, up: true }); vp.appendChild(h);
+    const pila = document.createElement('div'); pila.className = 'pila';
+    for (let i = 0; i < 3; i++) pila.appendChild(fc({ palo: 'oros', valor: 11 }));
+    vp.appendChild(pila);
+    vp.appendChild(fc({ palo: 'copas', valor: 11 }, { up: true }));
+    vp.appendChild(fc({ palo: 'espadas', valor: 11 }, { up: true }));
   }
 
   /* ---------- crear / unirse a sala ---------- */

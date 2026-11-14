@@ -1,18 +1,18 @@
 /* Modo sin conexión. Sube el número de VERSION cuando cambies cualquier fichero. */
-const VERSION = 'carrera-v17';
+const VERSION = 'carrera-v18';
 const NUCLEO = [
   "./",
   "index.html",
-  "estilos.css?v=17",
-  "motor.js?v=17",
-  "app.js?v=17",
+  "estilos.css?v=18",
+  "motor.js?v=18",
+  "app.js?v=18",
   "manifest.json",
   "favicon-32.png",
   "apple-touch-icon.png",
   "herradura.svg",
   "vendor/supabase.js",
   "config.js",
-  "online.js?v=17",
+  "online.js?v=18",
   "logo.svg",
   "social.png",
   "icons/icono-192.png",
