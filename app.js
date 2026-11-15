@@ -127,9 +127,9 @@
 
   /* ---------- avisos, diálogos, portapapeles ---------- */
   let tAviso = 0;
-  function avisar(texto) {
+  function avisar(texto, ms = 2600) {
     const a = $('aviso'); a.textContent = texto; a.hidden = false;
-    clearTimeout(tAviso); tAviso = setTimeout(() => { a.hidden = true; }, 2600);
+    clearTimeout(tAviso); tAviso = setTimeout(() => { a.hidden = true; }, ms);
   }
   function confirmar(msg, ok = 'Aceptar') {
     return new Promise(res => {
@@ -689,23 +689,35 @@
 
   /* Sala en vivo: cada carta sale a una hora fija calculada con la semilla de la sala,
      así que todos los móviles ven la misma carrera a la vez. Las carreras se encadenan solas. */
+  /* Indicador de conexión: un punto junto al logo (verde, ámbar parpadeando o rojo) y avisos al cambiar. */
+  let conPrev = 'fuera';
+  function estadoCon(e) {
+    const m = $('marca');
+    if (e === 'fuera') m.removeAttribute('data-con'); else m.dataset.con = e;
+    m.title = { ok: 'Conectado a la sala', reconectando: 'Reconectando con la sala…', error: 'Sin conexión con la sala' }[e] || '';
+    if (e === 'ok' && conPrev !== 'ok' && conPrev !== 'fuera') avisar('Conectado a la sala');
+    conPrev = e;
+  }
+  window.addEventListener('offline', () => { if (esOnline() && conPrev !== 'fuera') estadoCon('error'); });
+
   /* ---------- Sala online (Supabase): lobby y salida simultánea ----------
      El anfitrión (el primero en conectarse) manda «sale la carrera n a esta hora»; cada móvil calcula la
      carrera con la semilla de la sala y la ve a la vez. Se envían muy pocos mensajes. */
-  let lobbyActivo = false, ultimoInicio = null, ultimaLista = [], onlListo = false, turnosObjetivo = 0, turnosJugados = 0, workerOn = false, catchup = false, ultimoIni = 0, turnoPendiente = false, conduciendo = false, eraHost = false;
+  let lobbyActivo = false, ultimoInicio = null, ultimaLista = [], onlListo = false, turnosObjetivo = 0, turnosJugados = 0, workerOn = false, catchup = false, ultimoIni = 0, turnoPendiente = false, conduciendo = false, eraHost = false, vistoOtro = false;
+  const MAX_MOVILES = 8;
   const VEL_F = { lenta: 2, normal: 1.4, rapida: .9 };
   const payloadInicio = (n, retraso) => ({ n, inicio: ahora() + retraso, retraso, pasos: S.onl.pasos, rondas: S.onl.rondas, auto: S.onl.auto, vel: S.onl.vel, F: VEL_F[S.onl.vel] });
   function pintarLobby(l) {
     if (l) ultimaLista = l; else l = ultimaLista;
     if (!lobbyActivo || !S.onl) return;
-    const host = Online.soyAnfitrion(), o = S.onl, jug = l.flatMap(x => x.jugadores || []);
+    const host = Online.soyAnfitrion() && (S.creador || vistoOtro), o = S.onl, jug = l.flatMap(x => x.jugadores || []);
     const btn = (at, v, t, on) => `<button type="button" data-${at}="${v}" class="${on ? 'on' : ''}">${t}</button>`;
     const aj = host ? `<div class="cfg">
       <div class="cfgrow"><span>Carrera</span><div class="seg">${btn('om', 'a', 'Automático', o.auto)}${btn('om', 'm', 'Manual', !o.auto)}</div></div>
       ${o.auto ? `<div class="cfgrow"><span>Ritmo</span><div class="seg">${btn('ov', 'lenta', 'Lenta', o.vel === 'lenta')}${btn('ov', 'normal', 'Normal', o.vel === 'normal')}${btn('ov', 'rapida', 'Rápida', o.vel === 'rapida')}</div></div>` : ''}
       ${S.modo === 'personalizada' || S.modo === 'campeonato' ? `<div class="cfgrow"><span>Pista</span><input type="range" id="oPasos" min="2" max="12" value="${o.pasos}"><span class="valor" id="oPasosV">${o.pasos}</span></div>` : ''}
       ${S.modo === 'campeonato' ? `<div class="cfgrow"><span>Rondas</span><input type="range" id="oRondas" min="2" max="10" value="${o.rondas}"><span class="valor" id="oRondasV">${o.rondas}</span></div>` : ''}
-    </div>` : '<p>El anfitrión elige los ajustes y empieza la carrera.</p>';
+    </div>` : (l.length <= 1 && !S.creador ? '<p>Todavía no hay nadie más en la sala. Revisa que el código sea el correcto o espera a que entre el anfitrión.</p>' : '<p>El anfitrión elige los ajustes y empieza la carrera.</p>');
     $('cartel').innerHTML = `<h2>Sala ${codigoLegible(S.sala)}</h2><p>${l.length} móvil${l.length === 1 ? '' : 'es'} conectado${l.length === 1 ? '' : 's'}${host ? ' (eres el anfitrión)' : ''}.</p>`
       + (jug.length ? `<ul class="clasif">${jug.map(j => `<li>${mini(j.palo)}${esc(j.nombre)}<span class="quien">${paloDe(j.palo).nombre}</span></li>`).join('')}</ul>` : '')
       + aj + (host ? '<div class="acciones-fila"><button id="cEmpezarOnline">Empezar carrera</button></div>' : '');
@@ -763,13 +775,17 @@
   const modoOnline = () => ({ auto: S.onl.auto, vel: S.onl.vel, F: S.onl.F });
 
   function entrarOnline() {
-    eraHost = false;
+    eraHost = false; vistoOtro = false;
     S.onl = { pasos: S.sala.pasos, rondas: S.sala.rondas, auto: true, vel: 'normal', F: VEL_F.normal };
     S.ronda = 0; nuevaCarrera(); auto = true; onlListo = false; sync();
     Musica.iniciar();                     // la música arranca al entrar a la mesa
     lobbyActivo = true; ultimoInicio = null;
     Online.entrar(M.codigoSala(S.sala).slice(0, 8), S.partida.map(q => ({ nombre: q.nombre, palo: q.palo })), {
       alCambiar: l => {                      // cambios de quién está conectado (y relevo de anfitrión)
+        if (l.length > 1) vistoOtro = true;
+        if (l.length > MAX_MOVILES && l.slice(MAX_MOVILES).some(x => x.id === Online.miId)) {
+          Online.salir(); avisar(`La sala está llena (máximo ${MAX_MOVILES} móviles).`, 6000); ir('amigos'); return;
+        }
         pintarLobby(l);
         const host = Online.soyAnfitrion();
         if (host && !eraHost && l.length > 1) avisar('Ahora eres el anfitrión de la sala');
@@ -783,7 +799,8 @@
       },
       alInicio: p => {
         if (ultimoInicio && ultimoInicio.n === p.n && ultimoInicio.inicio === p.inicio) return;
-        lobbyActivo = false; ultimoInicio = p; ultimoIni = ahora() + p.retraso; disputar(p.n, ultimoIni, p);
+        const tarde = !ultimoInicio && p.retraso < -3000;
+        lobbyActivo = false; ultimoInicio = p; if (tarde) avisar('Carrera en curso: te pones al día…', 4000); ultimoIni = ahora() + p.retraso; disputar(p.n, ultimoIni, p);
       },
       alTurno: p => {
         if (p.n !== S.ronda) return;
@@ -795,7 +812,10 @@
         if (S.onl) Online.enviarModo(modoOnline());
         if (turnosObjetivo > 0) Online.enviarTurno({ n: ultimoInicio.n, k: turnosObjetivo - 1 });
       },
-      alError: () => avisar('Sin conexión con la sala. Reintentando…')
+      alError: m => (m === 'timeout'
+        ? avisar('No se pudo conectar con el servidor de salas. Revisa tu conexión o que el proyecto de Supabase esté activo.', 7000)
+        : avisar('Sin conexión con la sala. Reintentando…')),
+      alEstado: estadoCon
     }, S.creador);
     pintarLobby([]);
   }

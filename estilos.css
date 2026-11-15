@@ -560,3 +560,11 @@ body::before{background:radial-gradient(ellipse at 50% 40%,transparent 45%,rgba(
 .mesa-prev .pila .fc{margin-left:-50px;transform-origin:50% 100%}
 .mesa-prev .pila .fc:nth-child(1){margin-left:0;transform:rotate(-6deg)}
 .mesa-prev .pila .fc:nth-child(3){transform:rotate(6deg)}
+
+/* ===== v21: punto de conexión junto al logo ===== */
+#marca{position:relative}
+#marca[data-con]::after{content:"";position:absolute;right:-9px;top:-1px;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 2px #0b1a12}
+#marca[data-con="ok"]::after{background:#7dffa6}
+#marca[data-con="reconectando"]::after{background:#f0c453;animation:parpadeo 1s ease-in-out infinite}
+#marca[data-con="error"]::after{background:#ff6a5c}
+@keyframes parpadeo{50%{opacity:.25}}
