@@ -188,7 +188,8 @@
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && vista === 'juego') pedirPantalla(); });
 
   /* ---------- vistas ---------- */
-  let avisoRotar = false;
+  let avisoGiroT = 0;                       // cuándo se mostró por última vez (0 = aún no en esta sesión)
+  const CADA_AVISO_GIRO = 5 * 60 * 1000;
   const mqVertical = typeof matchMedia === 'function' ? matchMedia('(max-width:700px) and (orientation:portrait)') : null;
   let tGiro = 0;
   function mostrarGiro() { $('giro').hidden = false; clearTimeout(tGiro); tGiro = setTimeout(ocultarGiro, 6000); }
@@ -207,7 +208,7 @@
     $('btnSonido').hidden = v !== 'juego';
     if (v === 'menu' || v === 'amigos') Online.salir();
     if (v !== 'juego') ocultarGiro();
-    else if (mqVertical && mqVertical.matches && !avisoRotar) { avisoRotar = true; mostrarGiro(); }
+    else if (mqVertical && mqVertical.matches && Date.now() - avisoGiroT >= CADA_AVISO_GIRO) { avisoGiroT = Date.now(); mostrarGiro(); }
     window.scrollTo(0, 0);
   }
   const enMarcha = () => vista === 'juego' && !!carrera && (fase !== 'fin' || (S.camp && !S.camp.terminado));
@@ -532,6 +533,7 @@
     const f0 = enVivo() ? (esOnline() && S.onl ? S.onl.F : 1.4) : auto ? SPEEDS[ajustes.velocidad] : .9, f = f0 * (catchup ? .25 : 1), w = ms => sleep(ms * f);
     if (!RM) document.documentElement.style.setProperty('--flip', (.75 * f) + 's');
 
+    if (seguir && !enVivo()) carrera.retirarLlegados();   // al seguir, solo salen cartas de quienes aún corren
     const r = carrera.jugarTurno();
     registrarTurno(r);
     if (r.mazoReciclado) decir('Se acaba el mazo: se baraja el descarte.');
@@ -625,7 +627,7 @@
       <h2>Gana el caballo de ${minus(g)}</h2>
       <p>${S.modo === 'rapida' || !S.partida.length ? '' : cobran.length ? (S.modo === 'campeonato' ? 'Va con ' : 'Cobra: ') + esc(cobran.join(', ')) + '.' : 'Nadie había apostado por él.'}</p>
       <div class="acciones-fila">
-        <button id="cSeguir">Seguir hasta que lleguen todos</button>
+        <button id="cSeguir">Continuar con los que quedan</button>
         <button id="cRevancha" class="ghost">Revancha</button>
         <button id="cFin" class="ghost">Finalizar</button>
       </div>`;
@@ -966,6 +968,7 @@
     pintarPersonalizar();
     $('ajVibra').checked = ajustes.vibracion;
     $('ajMusica').checked = ajustes.musica; $('ajEfectos').checked = ajustes.efectos; $('ajVol').value = Math.round(ajustes.volumen * 100); $('ajPantalla').checked = ajustes.pantalla;
+    $('ajVol').closest('label').hidden = !Sonido.volumenAjustable;   // en iPhone no funciona con la música
     $('dAjustes').showModal();
   };
   $('ajVibra').onchange = e => { ajustes.vibracion = e.target.checked; guardarAjustes(); if (e.target.checked) haptico(); };

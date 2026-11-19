@@ -114,6 +114,15 @@
     get agotada() { return this.enCarrera.length === 0; }
     get pasoComunSuperado() { return Math.min(...this.palos.map(p => this.pos[p])); }
 
+    /** Quita del mazo y de los descartes las cartas de los caballos que ya han llegado, para que al
+     *  seguir la carrera no se gasten turnos en cartas que no mueven a nadie. Quien aún corre no
+     *  pierde ninguna carta. Es idempotente y conserva el orden del mazo. */
+    retirarLlegados() {
+      const vivo = c => !this.haLlegado(c.palo);
+      this.mazo = this.mazo.filter(vivo);
+      this.descartes = this.descartes.filter(vivo);
+    }
+
     /** Destapa la siguiente carta y aplica sus efectos. */
     jugarTurno() {
       if (this.agotada) throw new Error('La carrera ya no da más de sí');

@@ -52,8 +52,12 @@
     });
   }
 
+  // En iPhone/iPad el volumen de un <audio> no se puede cambiar (siempre vale 1): se detecta, no se adivina.
+  const volumenAjustable = (() => { try { const a = new Audio(); a.volume = .5; return a.volume === .5; } catch (e) { return false; } })();
+
   const Sonido = {
     usar(ajustes) { aj = ajustes; },
+    get volumenAjustable() { return volumenAjustable; },
     get silencio() { return silencio; },
     alternarSilencio() { silencio = !silencio; Musica.ajustar(); return silencio; },
     actualizar() { Musica.ajustar(); },

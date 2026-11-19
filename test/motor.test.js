@@ -191,3 +191,28 @@ test('mismo código = misma partida; cada ronda del campeonato, otra distinta', 
   assert.equal(orden(0), orden(0));
   assert.notEqual(orden(0), orden(1));
 });
+
+test('retirarLlegados: al seguir, ningún turno se gasta en cartas de caballos que ya llegaron', () => {
+  for (let s = 1; s <= 60; s++) {
+    const c = new M.Carrera({ pasos: 6, rng: M.crearRng(s) });
+    while (c.clasificacion.length === 0) c.jugarTurno();
+    const quedan = c.palos.filter(p => !c.haLlegado(p));
+    const antes = [...c.mazo, ...c.descartes].filter(x => quedan.includes(x.palo)).length;
+    c.retirarLlegados();
+    // solo desaparecen cartas de los que llegaron; las de los demás se conservan
+    assert.equal([...c.mazo, ...c.descartes].length, antes);
+    assert.ok([...c.mazo, ...c.descartes].every(x => !c.haLlegado(x.palo)));
+    while (!c.agotada) {
+      c.retirarLlegados();
+      const r = c.jugarTurno();
+      assert.ok(r.avanza !== null, 'cada carta debe mover a un caballo que sigue corriendo');
+    }
+  }
+});
+
+test('retirarLlegados no cambia nada si todavía no ha llegado nadie', () => {
+  const c = new M.Carrera({ pasos: 6, rng: M.crearRng(9) });
+  const mazo = c.mazo.length;
+  c.retirarLlegados();
+  assert.equal(c.mazo.length, mazo);
+});
