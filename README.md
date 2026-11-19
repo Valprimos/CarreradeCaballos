@@ -22,7 +22,7 @@ Es la fusión de dos versiones:
 
 | | Web Valprimos | App Flutter de Daniel | Esta fusión |
 |---|---|---|---|
-| Cartas | Ilustradas (WebP/SVG) | Dibujadas con código | Ilustradas, con volteo |
+| Cartas | Ilustradas (WebP) | Dibujadas con código | Ilustradas, con volteo |
 | Apuestas con fichas | Sí | No | Sí (el palo ganador paga el triple) |
 | Modos | Una carrera | Rápida, 1 contra 1, personalizada, campeonato | Los cuatro |
 | Pista | 5, 7 o 10 | 2 a 12 | 2 a 12 |
@@ -76,7 +76,7 @@ motor.js        Reglas, campeonato y códigos de sala. Sin DOM: se prueba con No
 app.js          Interfaz y animaciones
 sw.js           Modo sin conexión (sube VERSION al cambiar cualquier fichero)
 manifest.json   Instalable como app
-oros/ copas/ espadas/ bastos/ dorso/   Cartas (WebP para jugar, SVG originales)
+oros/ copas/ espadas/ bastos/ dorso/   Cartas en WebP (los SVG originales no se incluyen, ver Créditos)
 test/           Pruebas del motor
 ```
 
@@ -105,7 +105,7 @@ en la versión SVG de [spanish-playing-cards-svg](https://github.com/gjenkins20/
 bajo licencia [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/).
 
 Las imágenes se han adaptado para utilizar únicamente una baraja de 40 cartas (sin ochos ni nueves). Las ilustraciones
-no se han modificado: el juego muestra versiones WebP renderizadas desde los SVG originales (incluidos en cada carpeta).
+no se han modificado: el juego muestra versiones WebP renderizadas desde los SVG originales. Estos no se incluyen aquí para aligerar el repositorio: son idénticos a los del repositorio enlazado arriba.
 Los dorsos de colores se obtienen con un filtro de color en pantalla.
 
 Reglas, modos, campeonato y salas por código: versión Flutter de [Danielgrs18](https://github.com/Danielgrs18/CarreraDeCaballos).

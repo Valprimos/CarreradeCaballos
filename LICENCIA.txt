@@ -6,6 +6,6 @@ https://creativecommons.org/licenses/by-sa/3.0/
 
 Cambios: se han seleccionado únicamente las 40 cartas de la baraja española
 (As, 2 a 7, Sota, Caballo y Rey de cada palo), sin los ochos ni los nueves.
-Los archivos SVG no se han modificado (son copias idénticas a las originales).
+Los archivos SVG originales no se incluyen en este repositorio para reducir su tamaño (unos 70 MB). Son idénticos a los de https://github.com/gjenkins20/spanish-playing-cards-svg, de donde se pueden descargar.
 
-Para que el juego sea fluido, cada SVG tiene junto a él una versión .webp (640 px de ancho) renderizada directamente desde ese SVG, sin retocar la ilustración. El juego carga los .webp; los .svg se conservan como originales.
+Para que el juego sea fluido, el repositorio incluye, para cada carta, una versión .webp (640 px de ancho) renderizada directamente desde su SVG original, sin retocar la ilustración.
