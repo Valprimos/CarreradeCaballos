@@ -557,6 +557,7 @@
       decir(`El caballo de ${minus(r.llegada)} cruza la meta en ${puesto}.º lugar.`);
       if (r.ganador) {
         horseEls[r.llegada].classList.add('win'); Sonido.ganador(); Sonido.relincho(.7); Musica.parar(true);
+        if (window.Confeti) Confeti.lanzar([paloDe(r.ganador).color]);
         liquidarFichas(r.ganador);
         if (ajustes.vibracion && navigator.vibrate) navigator.vibrate([60, 40, 120]);
         abreCartel = !seguir;
@@ -636,7 +637,7 @@
     const filas = carrera.clasificacion.map((p, i) => {
       const pts = S.camp ? `<span class="pts">+${S.camp.ultimaRonda[p]} pts</span>` : '';
       const q = quienes(p);
-      return `<li><span class="n">${i + 1}.º</span>${mini(paloDe(p).id)}${paloDe(p).nombre}${q.length ? `<span class="quien">${esc(q.join(', '))}</span>` : ''}${pts}</li>`;
+      return `<li${i < 3 ? ` class="m${i + 1}"` : ''}><span class="n">${i + 1}.º</span>${mini(paloDe(p).id)}${paloDe(p).nombre}${q.length ? `<span class="quien">${esc(q.join(', '))}</span>` : ''}${pts}</li>`;
     });
     carrera.descolgados.forEach(p => {
       const q = quienes(p);
@@ -653,7 +654,7 @@
     let html;
     if (S.camp) {
       const c = S.camp, ultima = c.terminado;
-      const marcador = `<ol class="clasif">${c.clasificacion.map((j, i) => `<li><span class="n">${i + 1}.º</span>${mini(paloDe(j.palo).id)}${esc(j.nombre)}<span class="quien">${paloDe(j.palo).nombre}</span><span class="pts">${c.puntosDe(j)} pts</span></li>`).join('')}</ol>`;
+      const marcador = `<ol class="clasif">${c.clasificacion.map((j, i) => `<li${i < 3 ? ` class="m${i + 1}"` : ''}><span class="n">${i + 1}.º</span>${mini(paloDe(j.palo).id)}${esc(j.nombre)}<span class="quien">${paloDe(j.palo).nombre}</span><span class="pts">${c.puntosDe(j)} pts</span></li>`).join('')}</ol>`;
       html = `<h2>${ultima ? 'Campeonato terminado' : `Fin de la ronda ${c.rondasCorridas.length} de ${c.rondas}`}</h2>`
         + (ultima ? `<p><b>${c.campeones.length > 1 ? 'Campeones' : 'Campeón'}: ${esc(c.campeones.map(j => j.nombre).join(', '))}</b></p>` : '')
         + `<h3>Llegada de esta ronda</h3>${sinGanador ? '<p>Ningún caballo pudo llegar a la meta.</p>' : ''}${listaClasificacion()}<h3 style="margin-top:12px">Marcador</h3>${marcador}`
@@ -666,6 +667,7 @@
         <div class="acciones-fila"><button id="cRevancha">Revancha</button><button id="cFin" class="ghost">Finalizar</button></div>`;
     }
     $('cartel').innerHTML = html; $('cartel').hidden = false;
+    if (S.camp && S.camp.terminado && window.Confeti) Confeti.lanzar(S.camp.campeones.map(j => paloDe(j.palo).color), { cantidad: 240, vida: 4.2 });
     if (enVivo()) { $('cartel').querySelectorAll('button:not(#cFin)').forEach(b => b.remove()); $('cartel').insertAdjacentHTML('beforeend', '<p id="cuenta"></p>'); if (esOnline()) finOnline(); }
     pintarLista(); $('cartel').scrollIntoView({ block: 'nearest', behavior: RM ? 'auto' : 'smooth' });
   }
