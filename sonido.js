@@ -75,30 +75,45 @@
     ya() { tono(990, 0, .35, 'square', .16); }
   };
 
-  /* ---- música: un <audio> normal, que se lanza directamente al crear la partida ---- */
+  /* ---- música: un <audio> normal, que se lanza directamente al crear la partida ----
+     Suena desde que sale la carrera hasta que llegan todos los caballos o se sale de la partida (parar).
+     El botón Sonido solo la silencia: sigue avanzando sin oírse y al volver a activarlo continúa por donde iba.
+     Si la app pasa a segundo plano, se pausa; al volver, sigue por donde iba. */
   const el = new Audio('audio/carrera.mp3');
   el.loop = true; el.preload = 'none';
-  let pendiente = false, tFade = 0;
-  const objetivo = () => (silencio || !aj.musica ? 0 : aj.volumen * .55);
+  let pendiente = false, tFade = 0, sonando = false, fuera = false;
+  const nivel = () => aj.volumen * .55;
+  const quiere = () => sonando && aj.musica && !fuera;
+  function poner() {                              // deja el <audio> como toca: sonando o en pausa, con o sin silencio
+    clearInterval(tFade);
+    if (!quiere()) { el.pause(); return; }
+    el.muted = silencio;                          // iPhone ignora el volumen del <audio>, pero sí respeta muted
+    el.volume = nivel();
+    if (el.paused) {
+      const p = el.play(); pendiente = false;
+      if (p && p.catch) p.catch(() => { pendiente = true; });   // si el navegador la bloquea, arranca en el siguiente toque
+    }
+  }
   const Musica = {
     precargar() { if (el.preload !== 'auto') { el.preload = 'auto'; try { el.load(); } catch (e) { /* nada */ } } },
     iniciar() {
-      if (!aj.musica || silencio) return;
-      clearInterval(tFade);
-      if (el.paused) el.currentTime = 0;
-      el.volume = objetivo();                    // (iPhone ignora el volumen del <audio>; suena al nivel del sistema)
-      const p = el.play(); pendiente = false;
-      if (p && p.catch) p.catch(() => { pendiente = true; });   // si el navegador la bloquea, arranca en el siguiente toque
+      sonando = true;
+      if (el.paused && !fuera) el.currentTime = 0;
+      poner();
     },
-    reintentar() { if (pendiente) Musica.iniciar(); },
+    reintentar() { if (pendiente) poner(); },
     parar(suave) {
-      clearInterval(tFade); pendiente = false;
+      sonando = false; pendiente = false; clearInterval(tFade);
       if (el.paused) return;
-      if (!suave) { el.pause(); return; }
+      if (!suave || el.muted) { el.pause(); return; }
       let v = el.volume;
       tFade = setInterval(() => { v -= .06; if (v <= 0) { clearInterval(tFade); el.pause(); } else el.volume = v; }, 90);
     },
-    ajustar() { if (objetivo() === 0) el.pause(); else el.volume = objetivo(); }
+    ajustar() { poner(); },
+    segundoPlano(f) { fuera = f; poner(); }
   };
+  document.addEventListener('visibilitychange', () => Musica.segundoPlano(document.visibilityState === 'hidden'));
+  window.addEventListener('pagehide', () => Musica.segundoPlano(true));
+  window.addEventListener('pageshow', () => Musica.segundoPlano(document.visibilityState === 'hidden'));
   window.Sonido = Sonido; window.Musica = Musica;
 })();

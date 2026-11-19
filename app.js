@@ -556,7 +556,7 @@
       ponerPuesto(r.llegada, puesto + 'º', puesto === 1 ? 'p1' : ''); Sonido.llegada();
       decir(`El caballo de ${minus(r.llegada)} cruza la meta en ${puesto}.º lugar.`);
       if (r.ganador) {
-        horseEls[r.llegada].classList.add('win'); Sonido.ganador(); Sonido.relincho(.7); Musica.parar(true);
+        horseEls[r.llegada].classList.add('win'); Sonido.ganador(); Sonido.relincho(.7);
         if (window.Confeti) Confeti.lanzar([paloDe(r.ganador).color]);
         liquidarFichas(r.ganador);
         if (ajustes.vibracion && navigator.vibrate) navigator.vibrate([60, 40, 120]);
