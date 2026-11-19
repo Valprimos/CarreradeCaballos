@@ -30,7 +30,7 @@
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="estilos.css?v=24">
+<link rel="stylesheet" href="estilos.css?v=25">
 </head>
 <body>
 <noscript>
@@ -227,6 +227,7 @@
   <label class="ajuste"><input type="checkbox" id="ajEfectos"> Efectos de sonido</label>
   <label class="ajuste">Volumen <input type="range" id="ajVol" min="0" max="100" style="flex:1"></label>
   <label class="ajuste"><input type="checkbox" id="ajPantalla"> Mantener la pantalla encendida durante la carrera</label>
+  <label class="ajuste"><input type="checkbox" id="ajQuedan"> Campeonato: al seguir tras el ganador, quitar las cartas de los caballos que ya llegaron</label>
   <p class="nota" style="margin:2px 0 8px">En iPhone la vibración es un toque háptico suave y depende de la versión de iOS.</p>
   <h2 style="margin-top:18px">Mesa y baraja</h2>
   <h3>Paño de la mesa</h3>
@@ -285,12 +286,12 @@
 
 <div id="aviso" class="aviso" hidden role="status"></div>
 
-<script src="motor.js?v=24"></script>
-<script src="sonido.js?v=24"></script>
-<script src="confeti.js?v=24"></script>
+<script src="motor.js?v=25"></script>
+<script src="sonido.js?v=25"></script>
+<script src="confeti.js?v=25"></script>
 <script src="vendor/supabase.js"></script>
 <script src="config.js"></script>
-<script src="online.js?v=24"></script>
-<script src="app.js?v=24"></script>
+<script src="online.js?v=25"></script>
+<script src="app.js?v=25"></script>
 </body>
 </html>

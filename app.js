@@ -53,7 +53,7 @@
     violeta:    { n: 'Violeta',     src: 'dorso/back_violeta.webp',    f: 'none' }
   };
   const ajustes = Object.assign(
-    { pano: 'verde', dorso: 'indigo', vibracion: true, pantalla: true, velocidad: 'normal', auto: false, musica: true, efectos: true, volumen: .6 },
+    { pano: 'verde', dorso: 'indigo', vibracion: true, pantalla: true, velocidad: 'normal', auto: false, musica: true, efectos: true, volumen: .6, soloQuedan: true },
     LS.get('carrera_ajustes', {})
   );
   if (!PANOS[ajustes.pano]) ajustes.pano = 'verde';
@@ -95,7 +95,7 @@
   const claveLista = () => (esOnline() ? 'online' : S.modo === 'personalizada' ? 'pers' : 'otros');
   const guardarJugadores = () => { LS.set('carrera_jugadores', listas.otros); LS.set('carrera_jugadores_pers', listas.pers); LS.set('carrera_jugador_online', listas.online); };
 
-  let carrera = null, fase = 'corriendo', busy = false, auto = false, seguir = false, token = 0, ganadorLiquidado = false, espera = false;
+  let carrera = null, fase = 'corriendo', busy = false, auto = false, seguir = false, retirar = true, token = 0, ganadorLiquidado = false, espera = false;
   let horseEls = {}, chkEls = [], log = [], hist = [], turnoN = 0;
   let vista = 'menu';
 
@@ -434,7 +434,7 @@
 
   function nuevaCarrera() {
     token++; busy = false; auto = false; fase = 'corriendo';
-    seguir = S.modo === 'campeonato' || enVivo(); ganadorLiquidado = false;
+    seguir = S.modo === 'campeonato' || enVivo(); retirar = ajustes.soloQuedan; ganadorLiquidado = false;
     hist = []; turnoN = 0;
     espera = ajustes.auto && !enVivo();
     if (!enVivo()) { Musica.iniciar(); Sonido.relincho(); }   // en automático, la carrera no arranca hasta pulsar Empezar
@@ -533,7 +533,7 @@
     const f0 = enVivo() ? (esOnline() && S.onl ? S.onl.F : 1.4) : auto ? SPEEDS[ajustes.velocidad] : .9, f = f0 * (catchup ? .25 : 1), w = ms => sleep(ms * f);
     if (!RM) document.documentElement.style.setProperty('--flip', (.75 * f) + 's');
 
-    if (seguir && !enVivo()) carrera.retirarLlegados();   // al seguir, solo salen cartas de quienes aún corren
+    if (seguir && retirar && !enVivo()) carrera.retirarLlegados();   // al seguir, solo salen cartas de quienes aún corren
     const r = carrera.jugarTurno();
     registrarTurno(r);
     if (r.mazoReciclado) decir('Se acaba el mazo: se baraja el descarte.');
@@ -628,6 +628,7 @@
       <p>${S.modo === 'rapida' || !S.partida.length ? '' : cobran.length ? (S.modo === 'campeonato' ? 'Va con ' : 'Cobra: ') + esc(cobran.join(', ')) + '.' : 'Nadie había apostado por él.'}</p>
       <div class="acciones-fila">
         <button id="cSeguir">Continuar con los que quedan</button>
+        <button id="cSeguirTodas" class="ghost">Continuar con todas las cartas</button>
         <button id="cRevancha" class="ghost">Revancha</button>
         <button id="cFin" class="ghost">Finalizar</button>
       </div>`;
@@ -674,7 +675,8 @@
     pintarLista(); $('cartel').scrollIntoView({ block: 'nearest', behavior: RM ? 'auto' : 'smooth' });
   }
 
-  function seguirCarrera() {
+  function seguirCarrera(soloQuedan) {       // true: sin las cartas de quienes ya llegaron · false: con todas
+    retirar = soloQuedan !== false;
     $('cartel').hidden = true; seguir = true; fase = 'corriendo'; sync();
     if (ajustes.auto) setAuto(true);
   }
@@ -955,7 +957,8 @@
   };
   $('cartel').addEventListener('click', e => {
     const id = e.target.id;
-    if (id === 'cSeguir') seguirCarrera();
+    if (id === 'cSeguir') seguirCarrera(true);
+    else if (id === 'cSeguirTodas') seguirCarrera(false);
     else if (id === 'cRevancha' || id === 'cNuevoCamp') revancha();
     else if (id === 'cSiguiente') siguienteRonda();
     else if (id === 'cEmpezarOnline') Online.enviarInicio(payloadInicio(0, 6000));
@@ -967,7 +970,7 @@
   $('btnAjustes').onclick = () => {
     pintarPersonalizar();
     $('ajVibra').checked = ajustes.vibracion;
-    $('ajMusica').checked = ajustes.musica; $('ajEfectos').checked = ajustes.efectos; $('ajVol').value = Math.round(ajustes.volumen * 100); $('ajPantalla').checked = ajustes.pantalla;
+    $('ajMusica').checked = ajustes.musica; $('ajEfectos').checked = ajustes.efectos; $('ajVol').value = Math.round(ajustes.volumen * 100); $('ajPantalla').checked = ajustes.pantalla; $('ajQuedan').checked = ajustes.soloQuedan;
     $('ajVol').closest('label').hidden = !Sonido.volumenAjustable;   // en iPhone no funciona con la música
     $('dAjustes').showModal();
   };
@@ -984,6 +987,7 @@
     ajustes.pantalla = e.target.checked; guardarAjustes();
     if (!ajustes.pantalla) soltarPantalla(); else if (vista === 'juego') pedirPantalla();
   };
+  $('ajQuedan').onchange = e => { ajustes.soloQuedan = e.target.checked; guardarAjustes(); };
   $('ajFichas').onclick = async () => {
     if (await confirmar('Todos los jugadores vuelven a 100 fichas.', 'Reiniciar')) {
       fichas = {}; LS.set('carrera_fichas', fichas); pintarLista(); avisar('Fichas reiniciadas');

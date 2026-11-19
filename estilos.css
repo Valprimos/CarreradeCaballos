@@ -585,3 +585,13 @@ dialog form.cierra{position:sticky;top:12px;z-index:6;height:0;margin:0;padding:
 dialog form.cierra button{position:absolute;right:0;top:-12px;width:40px;height:40px;min-height:0;padding:0;border-radius:50%;font-size:1.05rem;line-height:1;
   background:rgba(5,11,8,.94);box-shadow:inset 0 0 0 1px var(--edge),0 2px 8px rgba(0,0,0,.55)}
 #dAjustes h2:first-of-type{padding-right:48px}
+
+/* Al pulsar dos veces seguidas (el mazo, los botones) el móvil ya no hace zoom; el zoom con dos dedos sigue funcionando */
+html,body,button,.track,.pile{touch-action:manipulation}
+.playing button,.playing .track{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+
+/* iPhone en vertical: el mazo salía a 112 px dentro de un panel de altura fija y se cortaban el mazo y los botones de abajo */
+@media (max-width:700px) and (orientation:portrait){
+  #vJuego .table-row{--dk:clamp(46px,6svh,60px);height:auto;min-height:calc(var(--dk)*1.526 + 70px);overflow:visible}
+  #vJuego .pile .fc{width:var(--dk)}
+}
