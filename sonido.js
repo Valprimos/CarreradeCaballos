@@ -11,8 +11,11 @@
   const azar = lista => lista[Math.floor(Math.random() * lista.length)];
 
   function ac() {
+    if (ctx && ctx.state === 'closed') ctx = null;
     if (!ctx && AC) { try { ctx = new AC(); } catch (e) { ctx = null; } }
-    if (ctx && ctx.state === 'suspended') ctx.resume();
+    // En iPhone, al salir de la app o al cortarse el audio, el contexto pasa a 'interrupted' (no solo a 'suspended'):
+    // hay que reanudarlo siempre que no esté corriendo, o los efectos (galopes, relinchos, cartas…) se quedan mudos.
+    if (ctx && ctx.state !== 'running') { try { const p = ctx.resume(); if (p && p.catch) p.catch(() => { /* nada */ }); } catch (e) { /* nada */ } }
     return ctx;
   }
   const vol = () => (silencio || !aj.efectos ? 0 : aj.volumen);
@@ -117,8 +120,9 @@
     ajustar() { poner(); },
     segundoPlano(f) { fuera = f; poner(); }
   };
-  document.addEventListener('visibilitychange', () => Musica.segundoPlano(document.visibilityState === 'hidden'));
+  const alVolver = () => { if (ctx) ac(); };       // al volver a la app, reactiva los efectos (en iPhone el audio queda interrumpido)
+  document.addEventListener('visibilitychange', () => { const oculta = document.visibilityState === 'hidden'; Musica.segundoPlano(oculta); if (!oculta) alVolver(); });
   window.addEventListener('pagehide', () => Musica.segundoPlano(true));
-  window.addEventListener('pageshow', () => Musica.segundoPlano(document.visibilityState === 'hidden'));
+  window.addEventListener('pageshow', () => { Musica.segundoPlano(document.visibilityState === 'hidden'); alVolver(); });
   window.Sonido = Sonido; window.Musica = Musica;
 })();
