@@ -109,3 +109,18 @@ no se han modificado: el juego muestra versiones WebP renderizadas desde los SVG
 Los dorsos de colores se obtienen con un filtro de color en pantalla.
 
 Reglas, modos, campeonato y salas por código: versión Flutter de [Danielgrs18](https://github.com/Danielgrs18/CarreraDeCaballos).
+
+## Desarrollo
+
+```
+npm install            # una vez (solo para las pruebas de interfaz)
+npm test               # motor, fichas y caché sin conexión (rápido, sin navegador)
+npm run test:ui        # pruebas de interfaz en un navegador real (Playwright; tardan un par de minutos)
+npm run version        # pone al día la versión de la caché en index.html y sw.js
+npm run servir         # servidor local en http://localhost:4173
+```
+
+- **Versión de la caché:** al cambiar cualquier js o css, ejecuta `npm run version` antes de subir. Si se olvida,
+  `npm test` y las pruebas de GitHub Actions fallan avisando.
+- **Fichas:** se guardan por id interno de cada jugador (`fichas.js`), no por nombre.
+- **Pruebas automáticas:** cada subida a GitHub ejecuta `.github/workflows/test.yml`.

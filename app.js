@@ -7,51 +7,16 @@
   const { PALOS, IDS, LIMITES, Carrera, Campeonato, paloDe, nombreCarta } = M;
 
   /* ---------- utilidades ---------- */
-  const $ = id => document.getElementById(id);
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const { $, sleep, esc, nuevaSemilla, LS } = Util;
   const minus = id => paloDe(id).nombre.toLowerCase();
   const mini = id => `<img class="mini" src="${id}/card_${paloDe(id).archivo}_01.webp" alt="">`;
   const src = c => `${c.palo}/card_${paloDe(c.palo).archivo}_${String(c.valor).padStart(2, '0')}.webp`;
   let BACK = 'dorso/card_back.webp';
   const RM = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion:reduce)').matches;
-  const nuevaSemilla = () => Math.floor(Math.random() * Math.pow(32, 5));
   const PASOS_FIJOS = LIMITES.pasos.defecto;
 
-  const LS = {
-    get(k, def) { try { const v = localStorage.getItem(k); return v == null ? def : JSON.parse(v); } catch (e) { return def; } },
-    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ } }
-  };
-
   /* ---------- ajustes guardados ---------- */
-  // Paños: color, textura y nombre. Las texturas son degradados CSS (sin imágenes).
-  const TEX = {
-    fieltro: 'repeating-linear-gradient(45deg,rgba(255,255,255,.022) 0 1px,transparent 1px 4px),repeating-linear-gradient(-45deg,rgba(0,0,0,.06) 0 1px,transparent 1px 4px)',
-    liso: 'linear-gradient(rgba(255,255,255,.015),rgba(255,255,255,.015))',
-    rombos: 'linear-gradient(45deg,rgba(255,255,255,.05) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.05) 75%) 0 0/34px 34px,linear-gradient(45deg,rgba(255,255,255,.05) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.05) 75%) 17px 17px/34px 34px',
-    puntos: 'radial-gradient(rgba(255,255,255,.09) 1.2px,transparent 1.8px) 0 0/18px 18px'
-  };
-  const PANOS = {
-    verde:     { n: 'Verde casino', c: '#177A4B', m: '#0E5A38', o: '#04261a', l: '#3f9a72', t: 'fieltro' },
-    burdeos:   { n: 'Burdeos',      c: '#8a2535', m: '#5A1522', o: '#26060d', l: '#b5586a', t: 'fieltro' },
-    azul:      { n: 'Azul noche',   c: '#1f6290', m: '#123C57', o: '#06182a', l: '#4a93bd', t: 'fieltro' },
-    grafito:   { n: 'Grafito',      c: '#4a545a', m: '#262C30', o: '#0b0e10', l: '#7d8a91', t: 'liso' },
-    esmeralda: { n: 'Esmeralda',    c: '#0f8f6a', m: '#0a6a50', o: '#02261d', l: '#3fc9a0', t: 'rombos' },
-    violeta:   { n: 'Violeta',      c: '#6a3fb0', m: '#45257a', o: '#150a2e', l: '#9b78e0', t: 'puntos' },
-    oro:       { n: 'Negro y oro',  c: '#3a3016', m: '#1b170a', o: '#070604', l: '#d9a93a', t: 'rombos' },
-    oceano:    { n: 'Océano',       c: '#12808f', m: '#0c5866', o: '#031c22', l: '#4fc3d6', t: 'puntos' }
-  };
-  // Dorsos: los dos primeros usan el dibujo original (el granate lo tiñe un filtro); el resto son diseños propios.
-  const DORSOS = {
-    indigo:     { n: 'Índigo',      src: 'dorso/card_back.webp',       f: 'none' },
-    granate:    { n: 'Granate',     src: 'dorso/card_back.webp',       f: 'hue-rotate(125deg) saturate(1.6)' },
-    rombos:     { n: 'Rombos',      src: 'dorso/back_rombos.webp',     f: 'none' },
-    real:       { n: 'Real',        src: 'dorso/back_real.webp',       f: 'none' },
-    noche:      { n: 'Negro y oro', src: 'dorso/back_noche.webp',      f: 'none' },
-    herraduras: { n: 'Herraduras',  src: 'dorso/back_herraduras.webp', f: 'none' },
-    esmeralda:  { n: 'Esmeralda',   src: 'dorso/back_esmeralda.webp',  f: 'none' },
-    violeta:    { n: 'Violeta',     src: 'dorso/back_violeta.webp',    f: 'none' }
-  };
+  const { TEX, PANOS, DORSOS, MODOS } = Datos;
   const ajustes = Object.assign(
     { pano: 'verde', dorso: 'indigo', vibracion: true, pantalla: true, velocidad: 'normal', auto: false, musica: true, efectos: true, volumen: .6, soloQuedan: true },
     LS.get('carrera_ajustes', {})
@@ -69,10 +34,9 @@
     const meta = $('themeColor'); if (meta) meta.setAttribute('content', p.m);
   }
 
-  /* fichas guardadas en el navegador (misma clave que la versión anterior) */
-  const START_CHIPS = 100, PAGO = 3;
-  let fichas = LS.get('carrera_fichas', {});
-  const getFichas = n => fichas[n] ?? START_CHIPS;
+  /* fichas guardadas en el navegador (misma clave que la versión anterior), ahora por id de jugador */
+  const PAGO = 3;
+  const Fch = Fichas.crear(LS);
 
   /* ---------- estado ---------- */
   const SPEEDS = { lenta: 2.2, normal: 1.4, rapida: .8 };
@@ -89,34 +53,16 @@
   };
   const limpiarJug = arr => (Array.isArray(arr) ? arr : []).slice(0, LIMITES.jugadores.max)
     .filter(j => j && IDS.includes(j.palo))
-    .map((j, i) => ({ nombre: String(j.nombre || '').slice(0, 14) || 'Jugador ' + (i + 1), palo: j.palo, apuesta: [5, 10, 20].includes(j.apuesta) ? j.apuesta : 10 }));
+    .map((j, i) => ({ id: typeof j.id === 'string' ? j.id : undefined, nombre: String(j.nombre || '').slice(0, 14) || 'Jugador ' + (i + 1), palo: j.palo, apuesta: [5, 10, 20].includes(j.apuesta) ? j.apuesta : 10 }));
   { const o = limpiarJug(LS.get('carrera_jugadores', null)); if (o.length) S.jugadores = o; }
   const listas = { otros: S.jugadores, pers: limpiarJug(LS.get('carrera_jugadores_pers', null)), online: limpiarJug(LS.get('carrera_jugador_online', null)).slice(0, 1) };
   const claveLista = () => (esOnline() ? 'online' : S.modo === 'personalizada' ? 'pers' : 'otros');
   const guardarJugadores = () => { LS.set('carrera_jugadores', listas.otros); LS.set('carrera_jugadores_pers', listas.pers); LS.set('carrera_jugador_online', listas.online); };
+  if (Fch.prepararJugadores(Object.values(listas))) guardarJugadores();   // da id a los jugadores guardados y conserva sus fichas
 
   let carrera = null, fase = 'corriendo', busy = false, auto = false, seguir = false, retirar = true, token = 0, ganadorLiquidado = false, espera = false;
   let horseEls = {}, chkEls = [], log = [], hist = [], turnoN = 0;
   let vista = 'menu';
-
-  const MODOS = {
-    rapida: {
-      nombre: 'Partida rápida',
-      reglas: 'Corren los cuatro caballos por una pista de 6 pasos. Sin jugadores ni apuestas: elige manual o automático y a correr.'
-    },
-    uno: {
-      nombre: '1 contra 1',
-      reglas: 'Dos jugadores, dos palos, dos caballos. Gana el palo que cruce primero la meta.'
-    },
-    personalizada: {
-      nombre: 'Partida personalizada',
-      reglas: 'Corren los cuatro caballos y tú decides el largo de la pista. Los jugadores y las apuestas son opcionales: puedes mirar la carrera sin apostar.'
-    },
-    campeonato: {
-      nombre: 'Campeonato',
-      reglas: 'Varias carreras seguidas. Cada una se corre entera y reparte puntos por puesto: el primero, tantos como caballos corran. Gana quien más puntos sume.'
-    }
-  };
 
   /* ---------- reloj compartido (salas en vivo) ---------- */
   let offsetReloj = 0;
@@ -360,7 +306,7 @@
     S.jugadores = S.jugadores.slice(0, max);
     while (S.jugadores.length < min) {
       const n = S.jugadores.length;
-      S.jugadores.push({ nombre: 'Jugador ' + (n + 1), palo: IDS[n % 4], apuesta: 10 });
+      S.jugadores.push({ id: Fichas.nuevoId(), nombre: 'Jugador ' + (n + 1), palo: IDS[n % 4], apuesta: 10 });
     }
     S.jugadores.forEach(j => { if (!permitidos.includes(j.palo)) j.palo = permitidos[0]; });
     if (S.modo === 'uno' && S.jugadores.length === 2) {
@@ -417,7 +363,7 @@
   /* ---------- empezar ---------- */
   function empezar() {
     ajustarJugadores();
-    S.partida = S.jugadores.map((p, i) => ({ nombre: (p.nombre || '').trim() || 'Jugador ' + (i + 1), palo: p.palo, apuesta: p.apuesta, delta: undefined }));
+    S.partida = S.jugadores.map((p, i) => ({ id: p.id, nombre: (p.nombre || '').trim() || 'Jugador ' + (i + 1), palo: p.palo, apuesta: p.apuesta, delta: undefined }));
     S.par = S.modo === 'uno' ? (S.sala ? [...S.sala.palos] : [S.partida[0].palo, S.partida[1].palo]) : IDS;
     // En la sala el reparto de palos lo fija el código; los jugadores solo eligen entre ellos.
     S.semillaBase = nuevaSemilla();
@@ -503,7 +449,7 @@
         return `<li>${mini(pal.id)}<span>${esc(p.nombre)} con ${pal.nombre.toLowerCase()}</span><span class="chips">${total} puntos${extra}</span></li>`;
       }
       const d = p.delta !== undefined ? `<span class="delta ${p.delta > 0 ? 'pos' : 'neg'}">${p.delta > 0 ? '+' : ''}${p.delta}</span>` : '';
-      return `<li>${mini(pal.id)}<span>${esc(p.nombre)} apuesta ${p.apuesta} a ${pal.nombre.toLowerCase()}</span><span class="chips">${getFichas(p.nombre)} fichas${d}</span></li>`;
+      return `<li>${mini(pal.id)}<span>${esc(p.nombre)} apuesta ${p.apuesta} a ${pal.nombre.toLowerCase()}</span><span class="chips">${Fch.de(p)} fichas${d}</span></li>`;
     }).join('');
   }
   const decir = t => { log.unshift(t); if (log.length > 6) log.pop(); };
@@ -613,9 +559,9 @@
     ganadorLiquidado = true;
     S.partida.forEach(p => {
       p.delta = p.palo === ganador ? p.apuesta * PAGO : -p.apuesta;
-      fichas[p.nombre] = getFichas(p.nombre) + p.delta;
+      Fch.cambiar(p, p.delta);
     });
-    LS.set('carrera_fichas', fichas);
+    Fch.guardar();
   }
 
   /* ---------- carteles ---------- */
@@ -916,7 +862,7 @@
   });
   $('add').onclick = () => {
     if (S.jugadores.length < limitesJug()[1]) {
-      S.jugadores.push({ nombre: 'Jugador ' + (S.jugadores.length + 1), palo: IDS[S.jugadores.length % 4], apuesta: 10 });
+      S.jugadores.push({ id: Fichas.nuevoId(), nombre: 'Jugador ' + (S.jugadores.length + 1), palo: IDS[S.jugadores.length % 4], apuesta: 10 });
       guardarJugadores(); renderFilas();
     }
   };
@@ -990,7 +936,7 @@
   $('ajQuedan').onchange = e => { ajustes.soloQuedan = e.target.checked; guardarAjustes(); };
   $('ajFichas').onclick = async () => {
     if (await confirmar('Todos los jugadores vuelven a 100 fichas.', 'Reiniciar')) {
-      fichas = {}; LS.set('carrera_fichas', fichas); pintarLista(); avisar('Fichas reiniciadas');
+      Fch.reiniciar(); pintarLista(); avisar('Fichas reiniciadas');
     }
   };
   $('credBtn').onclick = () => $('cred').showModal();

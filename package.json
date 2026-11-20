@@ -1,9 +1,15 @@
 {
   "name": "carrera-de-caballos",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Carrera de caballos con baraja española para el navegador",
   "private": true,
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "test:ui": "playwright test",
+    "version": "node tools/version.js",
+    "servir": "node tools/servidor.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0"
   }
 }
