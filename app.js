@@ -353,7 +353,7 @@
   /* ---------- semillas guardadas (solo Partida personalizada) ---------- */
   const entradaElegida = () => (S.modo === 'personalizada' && S.semillaElegida ? Sem.buscar(S.semillaElegida) : null);
   const fechaCorta = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString('es', { day: 'numeric', month: 'short' }); };
-  const etiquetaSemilla = e => [Semillas.codigo(e.semilla), `pista ${e.pasos}`, e.ganador && IDS.includes(e.ganador) ? 'ganó ' + paloDe(e.ganador).nombre : 'sin ganador', fechaCorta(e.fecha)].filter(Boolean).join(' · ');
+  const etiquetaSemilla = e => [Semillas.codigo(e.semilla), e.ganador && IDS.includes(e.ganador) ? 'ganó ' + paloDe(e.ganador).nombre : 'sin ganador', `pista ${e.pasos}`, fechaCorta(e.fecha)].filter(Boolean).join(' · ');
   function pintarSemillas() {
     const visible = S.modo === 'personalizada' && !S.sala;               // en una sala la semilla viene en el código
     const lista = Sem.lista();

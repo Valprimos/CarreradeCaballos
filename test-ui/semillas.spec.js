@@ -39,6 +39,7 @@ test.describe('elegir una semilla guardada en Partida personalizada', () => {
     await expect(page.locator('#filaSemilla')).toBeVisible();
     await expect(page.locator('#selSemilla option')).toHaveCount(3);
     await expect(page.locator('#selSemilla option').nth(1)).toContainText('pista 8');            // la más reciente primero
+    await expect(page.locator('#selSemilla option').nth(1)).toContainText('sin ganador');
     await expect(page.locator('#selSemilla option').nth(2)).toContainText('ganó Oros');
     await page.selectOption('#selSemilla', 's_abcdef');
     await expect(page.locator('#inPasos')).toHaveValue(String(PASOS));
