@@ -30,7 +30,7 @@
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="estilos.css?v=ccfbcd1f">
+<link rel="stylesheet" href="estilos.css?v=2a3d5c59">
 </head>
 <body>
 <noscript>
@@ -170,6 +170,11 @@
           <input type="range" id="inPasos" min="2" max="12" step="1" aria-label="Largo de la pista"><span class="valor" id="inPasosV"></span>
           <span class="nota" style="margin:0">cartas boca abajo</span>
         </div>
+        <div class="cfgrow" id="filaSemilla" hidden><span>Semilla</span>
+          <select id="selSemilla" aria-label="Semilla de la carrera" style="flex:1;min-width:0"></select>
+          <button type="button" id="btnBorrarSemilla" class="ghost chico" hidden>Borrar</button>
+        </div>
+        <p class="nota" id="notaSemilla" style="margin:0" hidden></p>
         <div class="cfgrow" id="filaRondas" hidden><span>Rondas</span>
           <input type="range" id="inRondas" min="2" max="10" step="1" aria-label="Número de rondas"><span class="valor" id="inRondasV"></span>
         </div>
@@ -288,15 +293,16 @@
 
 <div id="aviso" class="aviso" hidden role="status"></div>
 
-<script src="motor.js?v=ccfbcd1f"></script>
-<script src="util.js?v=ccfbcd1f"></script>
-<script src="datos.js?v=ccfbcd1f"></script>
-<script src="fichas.js?v=ccfbcd1f"></script>
-<script src="sonido.js?v=ccfbcd1f"></script>
-<script src="confeti.js?v=ccfbcd1f"></script>
+<script src="motor.js?v=2a3d5c59"></script>
+<script src="util.js?v=2a3d5c59"></script>
+<script src="datos.js?v=2a3d5c59"></script>
+<script src="fichas.js?v=2a3d5c59"></script>
+<script src="semillas.js?v=2a3d5c59"></script>
+<script src="sonido.js?v=2a3d5c59"></script>
+<script src="confeti.js?v=2a3d5c59"></script>
 <script src="vendor/supabase.js"></script>
 <script src="config.js"></script>
-<script src="online.js?v=ccfbcd1f"></script>
-<script src="app.js?v=ccfbcd1f"></script>
+<script src="online.js?v=2a3d5c59"></script>
+<script src="app.js?v=2a3d5c59"></script>
 </body>
 </html>

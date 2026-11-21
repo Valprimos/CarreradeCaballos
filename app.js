@@ -37,6 +37,7 @@
   /* fichas guardadas en el navegador (misma clave que la versión anterior), ahora por id de jugador */
   const PAGO = 3;
   const Fch = Fichas.crear(LS);
+  const Sem = Semillas.crear(LS, { pasos: { min: M.LIMITES.pasos.min, max: M.LIMITES.pasos.max } });
 
   /* ---------- estado ---------- */
   const SPEEDS = { lenta: 2.2, normal: 1.4, rapida: .8 };
@@ -49,7 +50,7 @@
     borrador: { modalidad: 'rapida', pasos: LIMITES.pasos.defecto, rondas: LIMITES.rondas.defecto, palos: ['oros', 'copas'], hora: '2' },
     salaCreada: null,
     // partida en curso
-    partida: [], par: ['oros', 'copas'], semillaBase: nuevaSemilla(), ronda: 0, camp: null
+    partida: [], par: ['oros', 'copas'], semillaBase: nuevaSemilla(), semillaElegida: null, ronda: 0, camp: null
   };
   const limpiarJug = arr => (Array.isArray(arr) ? arr : []).slice(0, LIMITES.jugadores.max)
     .filter(j => j && IDS.includes(j.palo))
@@ -60,7 +61,7 @@
   const guardarJugadores = () => { LS.set('carrera_jugadores', listas.otros); LS.set('carrera_jugadores_pers', listas.pers); LS.set('carrera_jugador_online', listas.online); };
   if (Fch.prepararJugadores(Object.values(listas))) guardarJugadores();   // da id a los jugadores guardados y conserva sus fichas
 
-  let carrera = null, fase = 'corriendo', busy = false, auto = false, seguir = false, retirar = true, token = 0, ganadorLiquidado = false, espera = false;
+  let carrera = null, fase = 'corriendo', busy = false, auto = false, seguir = false, retirar = true, sinFichas = false, pintaPasos = () => {}, token = 0, ganadorLiquidado = false, espera = false;
   let horseEls = {}, chkEls = [], log = [], hist = [], turnoN = 0;
   let vista = 'menu';
 
@@ -319,7 +320,7 @@
   /** modo = null conserva el actual (al entrar en una sala). */
   function abrirConfig(modo) {
     Online.salir(); S.onl = null;
-    if (modo) { S.modo = modo; S.sala = null; S.pasos = LIMITES.pasos.defecto; }
+    if (modo) { S.modo = modo; S.sala = null; S.pasos = LIMITES.pasos.defecto; S.semillaElegida = null; }
     ajustarJugadores();
     $('cfgTitulo').textContent = MODOS[S.modo].nombre;
     $('cfgReglas').textContent = MODOS[S.modo].reglas;
@@ -336,7 +337,7 @@
         v => { ajustes.auto = v === 'a'; $('rowSpeed').hidden = !ajustes.auto; guardarAjustes(); }),
       seg('segSpeed', [['lenta', 'Lenta'], ['normal', 'Normal'], ['rapida', 'Rápida']], () => ajustes.velocidad,
         v => { ajustes.velocidad = v; guardarAjustes(); }),
-      rango('inPasos', 'inPasosV', () => S.pasos, v => { S.pasos = v; }, () => !!S.sala),
+      (pintaPasos = rango('inPasos', 'inPasosV', () => S.pasos, v => { S.pasos = v; }, () => !!S.sala || !!entradaElegida())),
       rango('inRondas', 'inRondasV', () => S.rondas, v => { S.rondas = v; }, () => !!S.sala)
     ];
     $('rowSpeed').hidden = !ajustes.auto;
@@ -344,8 +345,28 @@
     $('segMode').parentElement.hidden = vivo; if (vivo) $('rowSpeed').hidden = true;
     $('start').textContent = vivo ? 'Entrar a la salida' : 'Empezar carrera';
     if (vivo) $('cfgReglas').textContent += ' Sala en vivo: la carrera es simultánea en todos los móviles.';
+    pintarSemillas();
     renderFilas();
     ir('config');
+  }
+
+  /* ---------- semillas guardadas (solo Partida personalizada) ---------- */
+  const entradaElegida = () => (S.modo === 'personalizada' && S.semillaElegida ? Sem.buscar(S.semillaElegida) : null);
+  const fechaCorta = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString('es', { day: 'numeric', month: 'short' }); };
+  const etiquetaSemilla = e => [Semillas.codigo(e.semilla), `pista ${e.pasos}`, e.ganador && IDS.includes(e.ganador) ? 'ganó ' + paloDe(e.ganador).nombre : 'sin ganador', fechaCorta(e.fecha)].filter(Boolean).join(' · ');
+  function pintarSemillas() {
+    const visible = S.modo === 'personalizada' && !S.sala;               // en una sala la semilla viene en el código
+    const lista = Sem.lista();
+    if (S.semillaElegida && !lista.some(e => e.id === S.semillaElegida)) S.semillaElegida = null;
+    $('filaSemilla').hidden = !visible;
+    $('selSemilla').innerHTML = '<option value="">Aleatoria (nueva cada vez)</option>'
+      + lista.map(e => `<option value="${e.id}"${e.id === S.semillaElegida ? ' selected' : ''}>${esc(etiquetaSemilla(e))}</option>`).join('');
+    const el = entradaElegida();
+    $('btnBorrarSemilla').hidden = !el;
+    const nota = el ? 'Es la misma carrera que guardaste. Con ella las fichas no cambian.' : lista.length ? '' : 'Aún no tienes ninguna: al acabar una carrera pulsa «Guardar semilla».';
+    $('notaSemilla').textContent = nota; $('notaSemilla').hidden = !visible || !nota;
+    if (el) S.pasos = el.pasos;                                           // la carrera depende también del largo de la pista
+    pintaPasos();
   }
 
   function renderFilas() {
@@ -366,7 +387,10 @@
     S.partida = S.jugadores.map((p, i) => ({ id: p.id, nombre: (p.nombre || '').trim() || 'Jugador ' + (i + 1), palo: p.palo, apuesta: p.apuesta, delta: undefined }));
     S.par = S.modo === 'uno' ? (S.sala ? [...S.sala.palos] : [S.partida[0].palo, S.partida[1].palo]) : IDS;
     // En la sala el reparto de palos lo fija el código; los jugadores solo eligen entre ellos.
-    S.semillaBase = nuevaSemilla();
+    const guardada = entradaElegida();
+    S.semillaBase = guardada ? guardada.semilla : nuevaSemilla();
+    if (guardada) S.pasos = guardada.pasos;
+    sinFichas = !!guardada;                      // repetir una carrera ya conocida no debe regalar ni quitar fichas
     S.ronda = 0;
     S.camp = S.modo === 'campeonato' ? new Campeonato({ rondas: S.rondas, jugadores: S.partida }) : null;
     ir('juego');
@@ -380,7 +404,7 @@
 
   function nuevaCarrera() {
     token++; busy = false; auto = false; fase = 'corriendo';
-    seguir = S.modo === 'campeonato' || enVivo(); retirar = ajustes.soloQuedan; ganadorLiquidado = false;
+    seguir = S.modo === 'campeonato' || enVivo(); retirar = ajustes.soloQuedan; ganadorLiquidado = sinFichas;
     hist = []; turnoN = 0;
     espera = ajustes.auto && !enVivo();
     if (!enVivo()) { Musica.iniciar(); Sonido.relincho(); }   // en automático, la carrera no arranca hasta pulsar Empezar
@@ -393,7 +417,7 @@
     log = [S.camp ? `Ronda ${S.ronda + 1} de ${S.camp.rondas}: los caballos están en la salida.` : 'Los caballos están en la salida.'];
     $('cartel').hidden = true;
     $('last').innerHTML = '<div class="slot">Aún no ha salido ninguna carta</div>';
-    $('tituloLista').textContent = S.camp ? `Marcador, ronda ${S.ronda + 1} de ${S.camp.rondas}` : 'Apuestas';
+    $('tituloLista').textContent = S.camp ? `Marcador, ronda ${S.ronda + 1} de ${S.camp.rondas}` : sinFichas ? 'Apuestas (misma carrera: las fichas no cambian)' : 'Apuestas';
     $('tituloLista').hidden = $('bets').hidden = S.modo === 'rapida' || !S.partida.length;
     construirPista(); pintarLista(); pintarLog(); sync();
     preload(src(carrera.mazo[carrera.mazo.length - 1])); calentar(carrera.mazo);
@@ -424,13 +448,60 @@
       const el = fc(c); T.querySelector(`.cell[data-k="${i + 1}"]`).appendChild(el); return el;
     });
   }
-  function moverCaballos(pos) {
+  /** Mueve los caballos a sus casillas. Con `dur` (ms) cada uno galopa de verdad desde donde estaba, levantando polvo. */
+  function moverCaballos(pos, dur = 0) {
     for (const id of carrera.palos) {
       const h = horseEls[id], antes = +h.dataset.p, ahora = pos[id];
       if (antes === ahora) continue;
+      const desde = !RM && dur >= 260 ? h.getBoundingClientRect() : null;     // dónde se ve ahora, aunque esté a medio galope
+      if (h._galope) h._galope.cancel();
       $('track').querySelector(`.cell[data-l="${id}"][data-c="${ahora}"]`).appendChild(h);
-      h.dataset.p = ahora; h.classList.remove('hop', 'retreat'); void h.offsetWidth; h.classList.add(ahora > antes ? 'hop' : 'retreat');
+      h.dataset.p = ahora; h.classList.remove('hop', 'retreat'); void h.offsetWidth;
+      if (desde && galopar(h, desde, ahora > antes, dur)) continue;
+      h.classList.add(ahora > antes ? 'hop' : 'retreat');
     }
+  }
+  /** Animación de galope entre dos casillas: avanza con zancadas (saltitos y balanceo) y suelta nubes de polvo. */
+  function galopar(h, desde, avanza, dur) {
+    const T = $('track'), hasta = h.getBoundingClientRect();
+    const dx = desde.left - hasta.left, dy = desde.top - hasta.top, largo = Math.hypot(dx, dy);
+    if (largo < 3) return false;
+    const zancadas = Math.max(2, Math.round(dur / 150)), n = zancadas * 2, alto = Math.min(avanza ? 14 : 7, hasta.height * .1), giro = avanza ? 3.5 : 6;
+    const kf = [];
+    for (let i = 0; i <= n; i++) {
+      const t = i / n, resta = 1 - (1 - Math.cos(Math.PI * t)) / 2, aire = i % 2 === 1 && i < n;      // sale y llega suave; los pasos impares van en el aire
+      kf.push({ offset: t, transform: `translate(${dx * resta}px, ${dy * resta - (aire ? alto : 0)}px) rotate(${aire ? (i % 4 === 1 ? -giro : giro) : 0}deg)` });
+    }
+    const pos = h.style.position, z = h.style.zIndex;
+    h.style.position = 'relative'; h.style.zIndex = 6;                         // el caballo va por encima de su polvo
+    const fin = () => { h.style.position = pos; h.style.zIndex = z; };
+    h._galope = h.animate(kf, { duration: dur, easing: 'linear' });
+    h._galope.onfinish = h._galope.oncancel = fin;
+    polvo(T, desde, hasta, dx, dy, largo, dur, avanza);
+    return true;
+  }
+  function polvo(T, desde, hasta, dx, dy, largo, dur, avanza) {
+    const caja = T.getBoundingClientRect(), ux = dx / largo, uy = dy / largo;     // (ux, uy) apunta hacia atrás: ahí queda el polvo
+    const nube = (cx, cy, tam, vida, deriva) => {
+      const d = document.createElement('div');
+      d.className = 'polvo';
+      d.style.cssText = `left:${cx - caja.left + T.scrollLeft}px;top:${cy - caja.top + T.scrollTop}px;width:${tam}px;height:${tam}px`;
+      T.appendChild(d);
+      const a = d.animate([
+        { opacity: .9, transform: 'translate(-50%,-50%) scale(.5)' },
+        { opacity: 0, transform: `translate(calc(-50% + ${ux * deriva + (Math.random() - .5) * 12}px), calc(-50% + ${uy * deriva - 10}px)) scale(1.7)` }
+      ], { duration: vida, easing: 'ease-out' });
+      a.onfinish = a.oncancel = () => d.remove();
+    };
+    const ancho = hasta.width, pies = hasta.height * .38, nubes = Math.min(8, Math.max(4, Math.round(dur / 80)));
+    for (let j = 0; j < nubes; j++) {
+      const t = j / nubes, resta = 1 - (1 - Math.cos(Math.PI * t)) / 2;
+      setTimeout(() => nube(
+        hasta.left + ancho / 2 + dx * resta + ux * ancho * .3 + (Math.random() - .5) * 8,
+        hasta.top + hasta.height / 2 + dy * resta + pies + (Math.random() - .5) * 6,
+        ancho * (.5 + Math.random() * .32), 650 + Math.random() * 300, ancho * .55), t * dur);
+    }
+    if (avanza) setTimeout(() => { for (let k = 0; k < 2; k++) nube(hasta.left + ancho * (.3 + k * .4), hasta.top + hasta.height / 2 + pies, ancho * .75, 800 + k * 150, ancho * .45 * (k ? 1 : -1)); }, dur);   // polvo al frenar
   }
   function ponerPuesto(id, texto, extra = '') {
     const celda = horseEls[id].parentElement;
@@ -494,7 +565,7 @@
     let abreCartel = false;
     if (r.avanza) {
       Sonido.casco(carrera.palos.indexOf(r.avanza), carrera.palos.length);
-      moverCaballos(r.posTrasAvance);
+      moverCaballos(r.posTrasAvance, Math.round(520 * f));
       decir(`Sale el ${nom}: avanza el caballo de ${minus(r.carta.palo)}.`);
     } else {
       decir(`Sale el ${nom}: su caballo ya ha llegado y no pasa nada.`);
@@ -519,7 +590,7 @@
       await w(1050); if (mi !== token) return;
       if (rev.retrocede) {
         Sonido.retroceso();
-        moverCaballos(rev.posDespues);
+        moverCaballos(rev.posDespues, Math.round(520 * f));
         decir(`Control ${rev.paso}: se voltea el ${nombreCarta(rev.carta)} y el caballo de ${minus(rev.carta.palo)} retrocede.`);
       } else {
         decir(`Control ${rev.paso}: se voltea el ${nombreCarta(rev.carta)}; su caballo ya llegó y no retrocede.`);
@@ -576,6 +647,7 @@
         <button id="cSeguir">Continuar con los que quedan</button>
         <button id="cSeguirTodas" class="ghost">Continuar con todas las cartas</button>
         <button id="cRevancha" class="ghost">Revancha</button>
+        ${botonesSemilla()}
         <button id="cFin" class="ghost">Finalizar</button>
       </div>`;
     $('cartel').hidden = false;
@@ -610,10 +682,10 @@
         + `<div class="acciones-fila">${ultima
             ? '<button id="cNuevoCamp">Nuevo campeonato</button>'
             : `<button id="cSiguiente">Siguiente ronda (${c.rondasCorridas.length + 1} de ${c.rondas})</button>`}
-           <button id="cFin" class="ghost">Finalizar</button></div>`;
+           ${botonesSemilla()}<button id="cFin" class="ghost">Finalizar</button></div>`;
     } else {
       html = `<h2>${sinGanador ? 'Carrera sin ganador' : 'Clasificación'}</h2>${sinGanador ? '<p>Ningún caballo pudo llegar a la meta.</p>' : ''}${listaClasificacion()}
-        <div class="acciones-fila"><button id="cRevancha">Revancha</button><button id="cFin" class="ghost">Finalizar</button></div>`;
+        <div class="acciones-fila"><button id="cRevancha">Revancha</button>${botonesSemilla()}<button id="cFin" class="ghost">Finalizar</button></div>`;
     }
     $('cartel').innerHTML = html; $('cartel').hidden = false;
     if (S.camp && S.camp.terminado && window.Confeti) Confeti.lanzar(S.camp.campeones.map(j => paloDe(j.palo).color), { cantidad: 240, vida: 4.2 });
@@ -635,7 +707,20 @@
     } else {
       S.semillaBase = nuevaSemilla();
     }
+    sinFichas = false;
     nuevaCarrera();
+  }
+  /** Vuelve a correr exactamente la misma carrera (misma semilla, misma pista, mismas cartas). Las fichas no cambian. */
+  function repetir() { sinFichas = true; nuevaCarrera(); }
+  const puedeRepetir = () => !enVivo() && !S.camp;
+  const puedeGuardar = () => !enVivo() && !S.sala && !!carrera && carrera.palos.length === 4;
+  const botonesSemilla = () => (puedeRepetir() ? '<button id="cRepetir" class="ghost">Repetir carrera</button>' : '') + (puedeGuardar() ? '<button id="cGuardar" class="ghost">Guardar semilla</button>' : '');
+  function guardarSemilla(boton) {
+    const r = Sem.guardar({ semilla: semillaActual(), pasos: pasosEfectivos(), ganador: carrera.ganador || null });
+    if (!r.ok) { avisar('No se pudo guardar la semilla.'); return; }
+    const cod = Semillas.codigo(r.entrada.semilla);
+    avisar(r.repetida ? `La semilla ${cod} ya estaba guardada.` : `Semilla ${cod} guardada. Puedes elegirla en Partida personalizada.`, 3800);
+    boton.textContent = 'Semilla guardada'; boton.disabled = true;
   }
   function siguienteRonda() { S.ronda++; nuevaCarrera(); }
 
@@ -906,6 +991,8 @@
     if (id === 'cSeguir') seguirCarrera(true);
     else if (id === 'cSeguirTodas') seguirCarrera(false);
     else if (id === 'cRevancha' || id === 'cNuevoCamp') revancha();
+    else if (id === 'cRepetir') repetir();
+    else if (id === 'cGuardar') guardarSemilla(e.target);
     else if (id === 'cSiguiente') siguienteRonda();
     else if (id === 'cEmpezarOnline') Online.enviarInicio(payloadInicio(0, 6000));
     else if (id === 'cOtraOnline') Online.enviarInicio(payloadInicio(S.ronda + 1, 8000));
@@ -923,6 +1010,11 @@
   $('ajVibra').onchange = e => { ajustes.vibracion = e.target.checked; guardarAjustes(); if (e.target.checked) haptico(); };
   $('ajMusica').onchange = e => { ajustes.musica = e.target.checked; guardarAjustes(); Sonido.actualizar(); };
   $('ajEfectos').onchange = e => { ajustes.efectos = e.target.checked; guardarAjustes(); if (e.target.checked) Sonido.ya(); };
+  $('selSemilla').onchange = e => { S.semillaElegida = e.target.value || null; pintarSemillas(); };
+  $('btnBorrarSemilla').onclick = async () => {
+    if (!(await confirmar('Se borra esta semilla guardada.', 'Borrar'))) return;
+    Sem.borrar(S.semillaElegida); S.semillaElegida = null; pintarSemillas();
+  };
   $('ajProbar').onclick = () => {                // un relincho y la fanfarria, con un mensaje claro si algo los impide
     const m = $('ajProbarMsg'); m.hidden = false;
     if (!ajustes.efectos) { m.textContent = 'Los efectos de sonido están desactivados: marca la casilla «Efectos de sonido».'; return; }

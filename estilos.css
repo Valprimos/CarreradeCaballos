@@ -595,3 +595,8 @@ html,body,button,.track,.pile{touch-action:manipulation}
   #vJuego .table-row{--dk:clamp(46px,6svh,60px);height:auto;min-height:calc(var(--dk)*1.526 + 70px);overflow:visible}
   #vJuego .pile .fc{width:var(--dk)}
 }
+
+/* Galope: el polvo que levantan los caballos (se anima desde app.js) y la pista como referencia de posición */
+.track{position:relative}
+.polvo{position:absolute;z-index:4;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);
+  background:radial-gradient(circle,rgba(242,231,208,.95) 0%,rgba(224,208,176,.6) 45%,rgba(224,208,176,0) 72%);filter:blur(.5px)}
