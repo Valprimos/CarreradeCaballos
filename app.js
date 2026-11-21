@@ -923,6 +923,13 @@
   $('ajVibra').onchange = e => { ajustes.vibracion = e.target.checked; guardarAjustes(); if (e.target.checked) haptico(); };
   $('ajMusica').onchange = e => { ajustes.musica = e.target.checked; guardarAjustes(); Sonido.actualizar(); };
   $('ajEfectos').onchange = e => { ajustes.efectos = e.target.checked; guardarAjustes(); if (e.target.checked) Sonido.ya(); };
+  $('ajProbar').onclick = () => {                // un relincho y la fanfarria, con un mensaje claro si algo los impide
+    const m = $('ajProbarMsg'); m.hidden = false;
+    if (!ajustes.efectos) { m.textContent = 'Los efectos de sonido están desactivados: marca la casilla «Efectos de sonido».'; return; }
+    if (Sonido.silencio) { m.textContent = 'El botón «Sonido» de la partida está en «no»: pulsa para activarlo.'; return; }
+    Sonido.desbloquear(); Sonido.relincho(); setTimeout(() => Sonido.ganador(), 900);
+    m.textContent = 'Si no oyes nada, mira el interruptor lateral de silencio y el volumen del iPhone.';
+  };
   $('ajVol').oninput = e => { ajustes.volumen = e.target.value / 100; guardarAjustes(); Sonido.actualizar(); };
   $('ajVol').onchange = () => Sonido.clic();
   $('btnSonido').onclick = () => { $('btnSonido').textContent = 'Sonido: ' + (Sonido.alternarSilencio() ? 'no' : 'sí'); };

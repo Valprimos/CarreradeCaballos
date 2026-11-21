@@ -1,23 +1,7 @@
 const { test, expect } = require('@playwright/test');
-const { IPHONE_UA, sembrar, conAjustes, sinRedExterna } = require('./ayudas');
+const { IPHONE_UA, sembrar, conAjustes, sinRedExterna, ESPIAS } = require('./ayudas');
 
 // Efectos con sonido de verdad: se espían el contexto de audio y el <audio> de la música.
-const ESPIAS = () => {
-  window.__fuentes = []; window.__resumes = 0; window.__ctx = null; window.__musica = { paused: true };
-  const _start = AudioBufferSourceNode.prototype.start;
-  AudioBufferSourceNode.prototype.start = function () { window.__fuentes.push(this.buffer ? this.buffer.duration : 0); return _start.apply(this, arguments); };
-  const _C = window.AudioContext;
-  window.AudioContext = function (...a) {
-    const c = new _C(...a); window.__ctx = c;
-    const r = c.resume.bind(c); c.resume = () => { window.__resumes++; return r(); };
-    return c;
-  };
-  window.AudioContext.prototype = _C.prototype;
-  const P = HTMLMediaElement.prototype;
-  Object.defineProperty(P, 'paused', { get() { return this.__p !== false; } });
-  P.play = function () { this.__p = false; return Promise.resolve(); };
-  P.pause = function () { this.__p = true; };
-};
 const clipsReales = page => page.evaluate(() => window.__fuentes.filter(d => d > 0.25).length);
 
 test.beforeEach(async ({ page }) => {

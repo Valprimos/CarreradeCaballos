@@ -47,4 +47,21 @@ const esperarClasificacion = page => page.waitForFunction(() => {
   return !c.hidden && h && /Clasificaci|sin ganador/.test(h.textContent);
 }, null, { timeout: 170000 });
 
-module.exports = { AJUSTES_RAPIDOS, IPHONE_UA, sembrar, conAjustes, sinRedExterna, observarTextos, textosDesde, abrirPartidaRapida, correrHastaGanador, esperarClasificacion };
+// Espía el contexto de audio (fuentes lanzadas, resume) y el play/pause del <audio> de la música.
+const ESPIAS = () => {
+  window.__fuentes = []; window.__resumes = 0; window.__ctx = null; window.__musica = { paused: true };
+  const _start = AudioBufferSourceNode.prototype.start;
+  AudioBufferSourceNode.prototype.start = function () { window.__fuentes.push(this.buffer ? this.buffer.duration : 0); return _start.apply(this, arguments); };
+  const _C = window.AudioContext;
+  window.AudioContext = function (...a) {
+    const c = new _C(...a); window.__ctx = c;
+    const r = c.resume.bind(c); c.resume = () => { window.__resumes++; return r(); };
+    return c;
+  };
+  window.AudioContext.prototype = _C.prototype;
+  const P = HTMLMediaElement.prototype;
+  Object.defineProperty(P, 'paused', { get() { return this.__p !== false; } });
+  P.play = function () { this.__p = false; return Promise.resolve(); };
+  P.pause = function () { this.__p = true; };
+};
+module.exports = { ESPIAS,  AJUSTES_RAPIDOS, IPHONE_UA, sembrar, conAjustes, sinRedExterna, observarTextos, textosDesde, abrirPartidaRapida, correrHastaGanador, esperarClasificacion };
