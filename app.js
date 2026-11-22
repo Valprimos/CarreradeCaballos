@@ -20,7 +20,7 @@
   const { TEX, PANOS, DORSOS, MODOS } = Datos;
   const guardados = LS.get('carrera_ajustes', {});
   const ajustes = Object.assign(
-    { pano: 'verde', dorso: 'indigo', vibracion: true, pantalla: true, velocidad: 'normal', auto: false, musica: true, efectos: true, volumen: .6, soloQuedan: true, pasosRapida: LIMITES.pasos.defecto },
+    { pano: 'verde', dorso: 'indigo', vibracion: true, pantalla: true, velocidad: 'normal', auto: false, musica: true, efectos: true, volumen: .6, soloQuedan: true, intro: true, pasosRapida: LIMITES.pasos.defecto },
     guardados
   );
   if (!PANOS[ajustes.pano]) ajustes.pano = 'verde';
@@ -1016,7 +1016,7 @@
   $('btnAjustes').onclick = () => {
     pintarPersonalizar();
     $('ajVibra').checked = ajustes.vibracion;
-    $('ajMusica').checked = ajustes.musica; $('ajEfectos').checked = ajustes.efectos; $('ajVol').value = Math.round(ajustes.volumen * 100); $('ajPantalla').checked = ajustes.pantalla; $('ajQuedan').checked = ajustes.soloQuedan;
+    $('ajMusica').checked = ajustes.musica; $('ajEfectos').checked = ajustes.efectos; $('ajVol').value = Math.round(ajustes.volumen * 100); $('ajPantalla').checked = ajustes.pantalla; $('ajQuedan').checked = ajustes.soloQuedan; $('ajIntro').checked = ajustes.intro !== false;
     $('ajPasosRapida').value = ajustes.pasosRapida; $('ajPasosRapidaV').textContent = ajustes.pasosRapida;
     $('ajVol').closest('label').hidden = !Sonido.volumenAjustable;   // en iPhone no funciona con la música
     $('dAjustes').showModal();
@@ -1047,6 +1047,8 @@
     if (!ajustes.pantalla) soltarPantalla(); else if (vista === 'juego') pedirPantalla();
   };
   $('ajPasosRapida').oninput = e => { ajustes.pasosRapida = +e.target.value; $('ajPasosRapidaV').textContent = e.target.value; guardarAjustes(); };
+  $('ajIntro').onchange = e => { ajustes.intro = e.target.checked; guardarAjustes(); };
+  $('ajVerIntro').onclick = () => { $('dAjustes').close(); setTimeout(() => window.Intro && window.Intro.mostrar(), 150); };
   $('ajQuedan').onchange = e => { ajustes.soloQuedan = e.target.checked; guardarAjustes(); };
   $('ajFichas').onclick = async () => {
     if (await confirmar('Todos los jugadores vuelven a 100 fichas.', 'Reiniciar')) {

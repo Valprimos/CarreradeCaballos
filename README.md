@@ -110,6 +110,19 @@ Los dorsos de colores se obtienen con un filtro de color en pantalla.
 
 Reglas, modos, campeonato y salas por código: versión Flutter de [Danielgrs18](https://github.com/Danielgrs18/CarreraDeCaballos).
 
+## Intro
+
+Al abrir la app aparece la doble C (las dos herraduras del logo) en el centro; después las dos herraduras viajan hasta el
+sitio que ocupan en el título «Carrera de Caballos» del menú, mientras el fondo se va deshaciendo en degradado de arriba
+abajo. Dura unos 3 segundos.
+
+- Se salta tocando la pantalla, o con Enter, Espacio o Escape.
+- En *Ajustes* se puede quitar («Intro al abrir la app») y volver a verla con «Ver la intro».
+- No sale con `?sinintro`, ni al entrar con un enlace de sala. Con «reducir movimiento» del sistema es un fundido corto.
+- En un navegador automatizado (las pruebas) tampoco sale, salvo que la dirección lleve `?intro=1`.
+- Está en `intro.js` y al final de `estilos.css`; no depende de nada más. Las herraduras aterrizan midiendo en cada
+  fotograma dónde están las «C» del título, así que llegan exactas en cualquier pantalla.
+
 ## Mi partida rápida
 
 En *Ajustes → Mi partida rápida* eliges el largo de la pista (por defecto, 6 cartas boca abajo) con el que arranca siempre

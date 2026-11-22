@@ -600,3 +600,30 @@ html,body,button,.track,.pile{touch-action:manipulation}
 .track{position:relative}
 .polvo{position:absolute;z-index:4;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);
   background:radial-gradient(circle,rgba(242,231,208,.95) 0%,rgba(224,208,176,.6) 45%,rgba(224,208,176,0) 72%);filter:blur(.5px)}
+
+/* ---------- Intro de la app (intro.js) ----------
+   La doble C aparece en el centro y viaja hasta su sitio en el título del menú, mientras el fondo se deshace en degradado. */
+#intro{position:fixed;inset:0;z-index:3000;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;overflow:hidden}
+.intro-activa{overflow:hidden}
+.intro-activa #vMenu h1 .hc{visibility:hidden}                  /* las «C» del título esperan a que lleguen las del viaje */
+/* el fondo es una máscara de degradado a tres alturas: al deslizarla, se deshace de arriba abajo con un borde muy suave */
+.i-fondo{position:absolute;inset:0;background:radial-gradient(ellipse 90% 60% at 50% 40%,#0f3d29 0%,#072317 55%,#030f0a 100%);
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,transparent 33.34%,#000 66.66%,#000 100%);mask-image:linear-gradient(180deg,transparent 0,transparent 33.34%,#000 66.66%,#000 100%);
+  -webkit-mask-size:100% 300%;mask-size:100% 300%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:0 100%;mask-position:0 100%}
+.i-va .i-fondo{animation:i-disuelve 1.4s cubic-bezier(.45,0,.55,1) forwards}
+@keyframes i-disuelve{to{-webkit-mask-position:0 0;mask-position:0 0}}
+.i-halo{position:absolute;left:50%;top:50%;width:min(90vmin,640px);height:min(90vmin,640px);margin:calc(min(90vmin,640px) / -2) 0 0 calc(min(90vmin,640px) / -2);border-radius:50%;
+  background:radial-gradient(circle,rgba(240,196,83,.3) 0%,rgba(240,196,83,.1) 40%,transparent 68%);animation:i-halo-entra .9s ease-out both,i-respira 2.6s ease-in-out .9s infinite}
+.i-va .i-halo{animation:i-halo-sale .9s ease-in forwards}
+@keyframes i-halo-entra{from{opacity:0;transform:scale(.7)}}
+@keyframes i-respira{50%{transform:scale(1.08)}}
+@keyframes i-halo-sale{to{opacity:0;transform:scale(1.25)}}
+.i-c{position:absolute;left:0;top:0;max-width:none;margin:0;display:block;will-change:transform;animation:i-c-entra .7s ease-out both;
+  filter:drop-shadow(0 4px 0 rgba(0,0,0,.45)) drop-shadow(0 0 .5rem rgba(240,196,83,.35))}
+@keyframes i-c-entra{from{opacity:0}}
+.i-c.i-sin-destino{animation:i-c-sale .6s ease-in forwards}
+@keyframes i-c-sale{to{opacity:0}}
+.i-saltar{position:absolute;left:0;right:0;bottom:max(18px,env(safe-area-inset-bottom));text-align:center;font:600 12px/1 var(--sans);letter-spacing:.14em;
+  text-transform:uppercase;color:rgba(250,243,222,.45);animation:i-hint .6s ease-out .9s both}
+.i-va .i-saltar{opacity:0;transition:opacity .3s}
+@keyframes i-hint{from{opacity:0}}
