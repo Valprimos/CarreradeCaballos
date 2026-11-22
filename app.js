@@ -14,17 +14,21 @@
   let BACK = 'dorso/card_back.webp';
   const RM = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion:reduce)').matches;
   const PASOS_FIJOS = LIMITES.pasos.defecto;
-  const DUR_GALOPE = 1.65, DUR_RETROCESO = 1000;     // s y ms: lo que dura un clip de galope (si aún no ha cargado) y un retroceso
+  const DUR_GALOPE = 1.05, DUR_RETROCESO = 700;      // s y ms: lo que dura un galope (si aún no ha cargado el sonido) y un retroceso
 
   /* ---------- ajustes guardados ---------- */
   const { TEX, PANOS, DORSOS, MODOS } = Datos;
+  const guardados = LS.get('carrera_ajustes', {});
   const ajustes = Object.assign(
-    { pano: 'verde', dorso: 'indigo', vibracion: true, pantalla: true, velocidad: 'normal', auto: false, musica: true, efectos: true, volumen: .6, soloQuedan: true, pasosPers: LIMITES.pasos.defecto },
-    LS.get('carrera_ajustes', {})
+    { pano: 'verde', dorso: 'indigo', vibracion: true, pantalla: true, velocidad: 'normal', auto: false, musica: true, efectos: true, volumen: .6, soloQuedan: true, pasosRapida: LIMITES.pasos.defecto },
+    guardados
   );
   if (!PANOS[ajustes.pano]) ajustes.pano = 'verde';
   if (!DORSOS[ajustes.dorso]) ajustes.dorso = 'indigo';
-  ajustes.pasosPers = Math.min(LIMITES.pasos.max, Math.max(LIMITES.pasos.min, Math.round(+ajustes.pasosPers) || LIMITES.pasos.defecto));
+  if (guardados.pasosRapida === undefined && guardados.pasosPers !== undefined) ajustes.pasosRapida = guardados.pasosPers;      // la pista que se eligió antes pasa a la partida rápida
+  delete ajustes.pasosPers;
+  if (guardados.pasosPers !== undefined) LS.set('carrera_ajustes', ajustes);        // ya migrada: se borra la clave antigua
+  ajustes.pasosRapida = Math.min(LIMITES.pasos.max, Math.max(LIMITES.pasos.min, Math.round(+ajustes.pasosRapida) || LIMITES.pasos.defecto));
   const guardarAjustes = () => LS.set('carrera_ajustes', ajustes);
 
   function aplicarTema() {
@@ -52,7 +56,7 @@
     borrador: { modalidad: 'rapida', pasos: LIMITES.pasos.defecto, rondas: LIMITES.rondas.defecto, palos: ['oros', 'copas'], hora: '2' },
     salaCreada: null,
     // partida en curso
-    partida: [], par: ['oros', 'copas'], semillaBase: nuevaSemilla(), semillaElegida: null, ronda: 0, camp: null
+    partida: [], par: ['oros', 'copas'], semillaBase: nuevaSemilla(), semillaElegida: null, pasosRapida: ajustes.pasosRapida, ronda: 0, camp: null
   };
   const limpiarJug = arr => (Array.isArray(arr) ? arr : []).slice(0, LIMITES.jugadores.max)
     .filter(j => j && IDS.includes(j.palo))
@@ -322,10 +326,12 @@
   /** modo = null conserva el actual (al entrar en una sala). */
   function abrirConfig(modo) {
     Online.salir(); S.onl = null;
-    if (modo) { S.modo = modo; S.sala = null; S.pasos = modo === 'personalizada' ? ajustes.pasosPers : LIMITES.pasos.defecto; S.semillaElegida = null; }
+    if (modo) { S.modo = modo; S.sala = null; S.pasos = LIMITES.pasos.defecto; S.semillaElegida = null; }
     ajustarJugadores();
     $('cfgTitulo').textContent = MODOS[S.modo].nombre;
-    $('cfgReglas').textContent = MODOS[S.modo].reglas;
+    $('cfgReglas').textContent = S.modo === 'rapida' && !S.sala
+      ? MODOS.rapida.reglas.replace('de 6 pasos', `de ${ajustes.pasosRapida} pasos`) + ' El largo de la pista se cambia en Ajustes → Mi partida rápida.'
+      : MODOS[S.modo].reglas;
     $('cfgJugTitulo').textContent = esOnline() ? 'Tu jugador' : S.modo === 'campeonato' ? 'Jugadores' : S.modo === 'personalizada' ? 'Jugadores y apuestas (opcional)' : 'Jugadores y apuestas';
     $('filaPasos').hidden = esOnline() || !(S.modo === 'personalizada' || S.modo === 'campeonato');
     $('filaRondas').hidden = esOnline() || S.modo !== 'campeonato';
@@ -389,6 +395,7 @@
     S.partida = S.jugadores.map((p, i) => ({ id: p.id, nombre: (p.nombre || '').trim() || 'Jugador ' + (i + 1), palo: p.palo, apuesta: p.apuesta, delta: undefined }));
     S.par = S.modo === 'uno' ? (S.sala ? [...S.sala.palos] : [S.partida[0].palo, S.partida[1].palo]) : IDS;
     // En la sala el reparto de palos lo fija el código; los jugadores solo eligen entre ellos.
+    S.pasosRapida = ajustes.pasosRapida;         // se fija al empezar: repetir o hacer revancha no cambia la pista aunque se toquen los Ajustes
     const guardada = entradaElegida();
     S.semillaBase = guardada ? guardada.semilla : nuevaSemilla();
     if (guardada) S.pasos = guardada.pasos;
@@ -401,7 +408,7 @@
     nuevaCarrera();
   }
 
-  const pasosEfectivos = () => (S.modo === 'personalizada' || S.modo === 'campeonato' ? (esOnline() && S.onl ? S.onl.pasos : S.sala ? S.sala.pasos : S.pasos) : PASOS_FIJOS);
+  const pasosEfectivos = () => (S.modo === 'personalizada' || S.modo === 'campeonato' ? (esOnline() && S.onl ? S.onl.pasos : S.sala ? S.sala.pasos : S.pasos) : S.modo === 'rapida' && !S.sala ? S.pasosRapida : PASOS_FIJOS);
   const semillaActual = () => ((S.sala ? S.sala.semilla : S.semillaBase) + S.ronda * 7919) >>> 0;
 
   function nuevaCarrera() {
@@ -1010,7 +1017,7 @@
     pintarPersonalizar();
     $('ajVibra').checked = ajustes.vibracion;
     $('ajMusica').checked = ajustes.musica; $('ajEfectos').checked = ajustes.efectos; $('ajVol').value = Math.round(ajustes.volumen * 100); $('ajPantalla').checked = ajustes.pantalla; $('ajQuedan').checked = ajustes.soloQuedan;
-    $('ajPasosPers').value = ajustes.pasosPers; $('ajPasosPersV').textContent = ajustes.pasosPers;
+    $('ajPasosRapida').value = ajustes.pasosRapida; $('ajPasosRapidaV').textContent = ajustes.pasosRapida;
     $('ajVol').closest('label').hidden = !Sonido.volumenAjustable;   // en iPhone no funciona con la música
     $('dAjustes').showModal();
   };
@@ -1039,7 +1046,7 @@
     ajustes.pantalla = e.target.checked; guardarAjustes();
     if (!ajustes.pantalla) soltarPantalla(); else if (vista === 'juego') pedirPantalla();
   };
-  $('ajPasosPers').oninput = e => { ajustes.pasosPers = +e.target.value; $('ajPasosPersV').textContent = e.target.value; guardarAjustes(); };
+  $('ajPasosRapida').oninput = e => { ajustes.pasosRapida = +e.target.value; $('ajPasosRapidaV').textContent = e.target.value; guardarAjustes(); };
   $('ajQuedan').onchange = e => { ajustes.soloQuedan = e.target.checked; guardarAjustes(); };
   $('ajFichas').onclick = async () => {
     if (await confirmar('Todos los jugadores vuelven a 100 fichas.', 'Reiniciar')) {

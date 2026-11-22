@@ -8,6 +8,7 @@
   const AC = window.AudioContext || window.webkitAudioContext;
   let ctx = null, aj = { musica: true, efectos: true, volumen: .6 }, silencio = false, cargado = false;
   const bufs = { galope: [], relincho: [] };
+  const GALOPE_S = 1.05;                                  // lo que dura un galope sonando (s): punto medio entre el rápido de antes y el clip entero (1,65 s)
   const azar = lista => lista[Math.floor(Math.random() * lista.length)];
 
   function ac() {
@@ -43,13 +44,17 @@
     s.buffer = b; f.type = 'bandpass'; f.frequency.setValueAtTime(f1, t); f.frequency.exponentialRampToValueAtTime(f2, t + dur);
     a.gain.value = (g || .3) * v; s.connect(f); f.connect(a); a.connect(c.destination); s.start(t);
   }
-  function reproducir(buf, g, pan, rate, t0) {            // clip real, con volumen, posición y velocidad propios
+  function reproducir(buf, g, pan, rate, t0, corte) {     // clip real, con volumen, posición y velocidad propios; `corte` = segundos del clip que suenan
     const c = ac(), v = vol(); if (!c || !v) return;
-    const s = c.createBufferSource(), a = c.createGain();
-    s.buffer = buf; s.playbackRate.value = rate; a.gain.value = Math.min(1, g * v); s.connect(a);          // sin pasar de 1: los clips ya llegan al máximo
+    const s = c.createBufferSource(), a = c.createGain(), gv = Math.min(1, g * v), cuando = c.currentTime + (t0 || 0);
+    s.buffer = buf; s.playbackRate.value = rate; a.gain.value = gv; s.connect(a);          // sin pasar de 1: los clips ya llegan al máximo
+    if (corte) {                                         // recortado: se apaga con un fundido corto justo cuando acaba
+      const real = corte / rate;
+      a.gain.setValueAtTime(gv, cuando + Math.max(0, real - .1)); a.gain.linearRampToValueAtTime(.0001, cuando + real);
+    }
     if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = pan; a.connect(p); p.connect(c.destination); }
     else a.connect(c.destination);
-    s.start(c.currentTime + (t0 || 0));
+    if (corte) s.start(cuando, 0, corte); else s.start(cuando);
   }
   function cargar() {                                     // se descargan y decodifican una sola vez, tras el primer toque
     const c = ac(); if (!c || cargado) return; cargado = true;
@@ -75,10 +80,11 @@
     casco(i, n) {
       const pan = n > 1 ? ((i / (n - 1)) * 2 - 1) * .6 : 0;
       if (bufs.galope.length) {
-        const buf = azar(bufs.galope), rate = .94 + Math.random() * .12;
-        reproducir(buf, 1.15, pan, rate);
+        const buf = azar(bufs.galope), rate = 1.12 + Math.random() * .1;       // algo más rápido que el original (el tono sube poco) y recortado a GALOPE_S
+        const corte = Math.min(buf.duration, GALOPE_S * rate);
+        reproducir(buf, 1.15, pan, rate, 0, corte);
         if (bufs.relincho.length && Math.random() < .12) reproducir(azar(bufs.relincho), .55, pan, .97 + Math.random() * .06, .3);
-        return buf.duration / rate;
+        return corte / rate;
       }
       [0, .09, .2, .29].forEach((t, k) => { tono(k % 2 ? 110 : 150, t, .08, 'sine', .55, 55); ruido(t, .04, 900, 400, .25); });
       return null;

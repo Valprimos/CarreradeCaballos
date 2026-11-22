@@ -52,7 +52,7 @@ const ESPIAS = () => {
   window.__fuentes = []; window.__resumes = 0; window.__ctx = null; window.__musica = { paused: true };
   const _start = AudioBufferSourceNode.prototype.start;
   window.__clips = []; window.__ganancias = [];
-  AudioBufferSourceNode.prototype.start = function () { window.__fuentes.push(this.buffer ? this.buffer.duration : 0); if (this.buffer) window.__clips.push({ dur: this.buffer.duration, rate: this.playbackRate.value }); return _start.apply(this, arguments); };
+  AudioBufferSourceNode.prototype.start = function () { window.__fuentes.push(this.buffer ? this.buffer.duration : 0); if (this.buffer) window.__clips.push({ dur: this.buffer.duration, rate: this.playbackRate.value, corte: arguments[2] }); return _start.apply(this, arguments); };
   const _v = Object.getOwnPropertyDescriptor(AudioParam.prototype, 'value');
   Object.defineProperty(AudioParam.prototype, 'value', { get() { return _v.get.call(this); }, set(x) { if (x > 0) window.__ganancias.push(+x.toFixed(3)); _v.set.call(this, x); } });
   const _C = window.AudioContext;

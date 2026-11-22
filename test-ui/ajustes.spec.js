@@ -61,38 +61,59 @@ test.describe('en iPhone', () => {
   });
 });
 
-test.describe('Mi partida personalizada (Ajustes)', () => {
-  const fijarPista = (page, n) => page.$eval('#ajPasosPers', (el, v) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); }, n);
+test.describe('Mi partida rápida (Ajustes)', () => {
+  const fijarPista = (page, n) => page.$eval('#ajPasosRapida', (el, v) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); }, n);
+  const cartasDePista = page => page.locator('#track .cell.chk .fc').count();
 
-  test('la pista que eliges en Ajustes es con la que arranca Partida personalizada, también al reabrir la web', async ({ page }) => {
+  test('la pista que eliges en Ajustes es con la que arranca Partida rápida, también al reabrir la web', async ({ page }) => {
     await page.goto('/');
     await page.click('#btnAjustes');
-    await expect(page.locator('#ajPasosPersV')).toHaveText('6');
+    await expect(page.locator('#ajPasosRapidaV')).toHaveText('6');
     await fijarPista(page, 9);
-    await expect(page.locator('#ajPasosPersV')).toHaveText('9');
+    await expect(page.locator('#ajPasosRapidaV')).toHaveText('9');
     await page.locator('#dAjustes form.cierra button').click();
-    await page.click('.modo[data-modo="personalizada"]');
-    await expect(page.locator('#inPasos')).toHaveValue('9');
-    await expect(page.locator('#inPasosV')).toHaveText('9');
+    await page.click('.modo[data-modo="rapida"]');
+    await expect(page.locator('#cfgReglas')).toContainText('pista de 9 pasos');
+    await page.click('#start'); await page.waitForSelector('#deck', { state: 'visible' });
+    expect(await cartasDePista(page)).toBe(9);
     await page.reload();
-    await page.click('.modo[data-modo="personalizada"]');
-    await expect(page.locator('#inPasos')).toHaveValue('9');
+    await page.click('.modo[data-modo="rapida"]');
+    await page.click('#start'); await page.waitForSelector('#deck', { state: 'visible' });
+    expect(await cartasDePista(page)).toBe(9);
   });
 
-  test('solo afecta a Partida personalizada: campeonato sigue con su pista de siempre', async ({ page }) => {
-    await sembrar(page, { carrera_ajustes: { ...conAjustes().carrera_ajustes, pasosPers: 10 } });
+  test('por defecto son 6 cartas, como siempre', async ({ page }) => {
     await page.goto('/');
-    await page.click('.modo[data-modo="campeonato"]');
-    await expect(page.locator('#inPasos')).toHaveValue('6');
+    await page.click('.modo[data-modo="rapida"]');
+    await page.click('#start'); await page.waitForSelector('#deck', { state: 'visible' });
+    expect(await cartasDePista(page)).toBe(6);
+  });
+
+  test('no afecta a Partida personalizada ni a campeonato: siguen con 6', async ({ page }) => {
+    await sembrar(page, { carrera_ajustes: { ...conAjustes().carrera_ajustes, pasosRapida: 10 } });
+    await page.goto('/');
+    for (const modo of ['personalizada', 'campeonato']) {
+      await page.click(`.modo[data-modo="${modo}"]`);
+      await expect(page.locator('#inPasos'), modo).toHaveValue('6');
+      await page.evaluate(() => document.getElementById('btnMenu').click());
+    }
+  });
+
+  test('la pista que se había elegido en la versión anterior pasa a la partida rápida', async ({ page }) => {
+    await sembrar(page, { carrera_ajustes: { ...conAjustes().carrera_ajustes, pasosPers: 8 } });
+    await page.goto('/');
+    await page.click('#btnAjustes');
+    await expect(page.locator('#ajPasosRapidaV')).toHaveText('8');
+    expect(await page.evaluate(() => 'pasosPers' in JSON.parse(localStorage.getItem('carrera_ajustes') || '{}'))).toBe(false);
   });
 
   test('un valor guardado estropeado no rompe la pista', async ({ page }) => {
     for (const [malo, esperado] of [[99, '12'], [1, '2'], ['x', '6'], [null, '6']]) {
       const p = await page.context().newPage();
-      await sembrar(p, { carrera_ajustes: { ...conAjustes().carrera_ajustes, pasosPers: malo } });
+      await sembrar(p, { carrera_ajustes: { ...conAjustes().carrera_ajustes, pasosRapida: malo } });
       await p.goto('/');
-      await p.click('.modo[data-modo="personalizada"]');
-      await expect(p.locator('#inPasos'), String(malo)).toHaveValue(esperado);
+      await p.click('#btnAjustes');
+      await expect(p.locator('#ajPasosRapidaV'), String(malo)).toHaveText(esperado);
       await p.close();
     }
   });

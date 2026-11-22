@@ -11,15 +11,18 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('el galope dura exactamente lo que dura el sonido del caballo, y la carta siguiente espera a que acabe', async ({ page }) => {
+  await page.evaluate(() => { window.__clips.length = 0; });
   const t0 = Date.now();
   await page.click('#deck');
   await page.waitForFunction(() => [...document.querySelectorAll('.horse')].some(h => h.getAnimations().some(a => a.effect && a.effect.getKeyframes().length > 4)), null, { polling: 'raf', timeout: 8000 });
   const d = await page.evaluate(() => {
     const a = [...document.querySelectorAll('.horse')].flatMap(h => h.getAnimations()).find(x => x.effect && x.effect.getKeyframes().length > 4);
-    const clip = window.__clips.filter(c => c.dur > 1.5).pop();                  // el galope que acaba de sonar (los clips duran 1,65 s)
-    return { animacion: a.effect.getTiming().duration, sonido: clip.dur / clip.rate * 1000 };
+    const clip = window.__clips.filter(c => c.corte).pop();                      // el galope que acaba de sonar (es el único recortado)
+    return { animacion: a.effect.getTiming().duration, sonido: (clip.corte || clip.dur) / clip.rate * 1000, clip: clip.dur };
   });
-  expect(d.sonido, 'el galope real dura más de 1,5 s').toBeGreaterThan(1500);
+  expect(d.clip, 'el clip original dura 1,65 s').toBeGreaterThan(1.5);
+  expect(d.sonido, 'punto medio: ni los 0,5 s de antes ni los 1,65 s del clip entero').toBeGreaterThan(900);
+  expect(d.sonido).toBeLessThan(1250);
   expect(Math.abs(d.animacion - d.sonido), 'la animación y el sonido miden lo mismo').toBeLessThan(5);
   // el mazo no se puede volver a tocar hasta que acaba el galope: tarda el giro de la carta (~0,9 s) más lo que dura el sonido
   await expect(page.locator('#deck')).toBeDisabled();
@@ -30,9 +33,9 @@ test('el galope dura exactamente lo que dura el sonido del caballo, y la carta s
 });
 
 test('destapar una carta suena mucho más bajo que el galope del caballo', async ({ page }) => {
-  await page.evaluate(() => { window.__ganancias.length = 0; });
+  await page.evaluate(() => { window.__ganancias.length = 0; window.__clips.length = 0; });
   await page.click('#deck');
-  await page.waitForFunction(() => window.__clips.some(c => c.dur > 1.5), null, { timeout: 8000 });
+  await page.waitForFunction(() => window.__clips.some(c => c.corte), null, { timeout: 8000 });
   const g = await page.evaluate(() => window.__ganancias);
   const carta = g.filter(x => x > 0.04 && x < 0.1), galope = g.filter(x => x > 0.6 && x < 0.75);
   expect(carta, 'chasquido de la carta: 0,12 × volumen').toContain(0.072);

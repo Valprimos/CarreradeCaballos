@@ -110,10 +110,10 @@ Los dorsos de colores se obtienen con un filtro de color en pantalla.
 
 Reglas, modos, campeonato y salas por código: versión Flutter de [Danielgrs18](https://github.com/Danielgrs18/CarreraDeCaballos).
 
-## Mi partida personalizada
+## Mi partida rápida
 
-En *Ajustes → Mi partida personalizada* eliges el largo de la pista con el que arranca siempre Partida personalizada.
-Los jugadores, las apuestas, el modo (manual o automático) y la velocidad ya se quedan guardados de una vez a otra.
+En *Ajustes → Mi partida rápida* eliges el largo de la pista (por defecto, 6 cartas boca abajo) con el que arranca siempre
+Partida rápida. En Partida personalizada el largo se elige al empezar, y las salas con amigos siguen con 6.
 
 ## Repetir carreras y semillas guardadas
 
