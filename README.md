@@ -110,10 +110,15 @@ Los dorsos de colores se obtienen con un filtro de color en pantalla.
 
 Reglas, modos, campeonato y salas por código: versión Flutter de [Danielgrs18](https://github.com/Danielgrs18/CarreraDeCaballos).
 
+## Mi partida personalizada
+
+En *Ajustes → Mi partida personalizada* eliges el largo de la pista con el que arranca siempre Partida personalizada.
+Los jugadores, las apuestas, el modo (manual o automático) y la velocidad ya se quedan guardados de una vez a otra.
+
 ## Repetir carreras y semillas guardadas
 
-- **Repetir carrera:** al ganar un caballo o al acabar, el botón *Repetir carrera* vuelve a correr exactamente la misma
-  (mismas cartas, mismo orden). Las fichas no cambian en una repetición.
+- **Repetir la misma carrera:** al ganar un caballo o al acabar, el botón *Repetir la misma carrera* vuelve a correr
+  exactamente esta (mismas cartas, mismo orden). Las fichas no cambian en una repetición.
 - **Guardar semilla:** el botón *Guardar semilla* conserva esa carrera (hasta 40 guardadas, en este navegador).
 - **Usar una semilla guardada:** en *Partida personalizada* aparece el selector *Semilla*. Al elegir una, la pista se fija al
   largo con el que se guardó y la carrera es la misma. *Aleatoria* vuelve a sacar una nueva cada vez.

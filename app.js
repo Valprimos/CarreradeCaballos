@@ -14,15 +14,17 @@
   let BACK = 'dorso/card_back.webp';
   const RM = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion:reduce)').matches;
   const PASOS_FIJOS = LIMITES.pasos.defecto;
+  const DUR_GALOPE = 1.65, DUR_RETROCESO = 1000;     // s y ms: lo que dura un clip de galope (si aún no ha cargado) y un retroceso
 
   /* ---------- ajustes guardados ---------- */
   const { TEX, PANOS, DORSOS, MODOS } = Datos;
   const ajustes = Object.assign(
-    { pano: 'verde', dorso: 'indigo', vibracion: true, pantalla: true, velocidad: 'normal', auto: false, musica: true, efectos: true, volumen: .6, soloQuedan: true },
+    { pano: 'verde', dorso: 'indigo', vibracion: true, pantalla: true, velocidad: 'normal', auto: false, musica: true, efectos: true, volumen: .6, soloQuedan: true, pasosPers: LIMITES.pasos.defecto },
     LS.get('carrera_ajustes', {})
   );
   if (!PANOS[ajustes.pano]) ajustes.pano = 'verde';
   if (!DORSOS[ajustes.dorso]) ajustes.dorso = 'indigo';
+  ajustes.pasosPers = Math.min(LIMITES.pasos.max, Math.max(LIMITES.pasos.min, Math.round(+ajustes.pasosPers) || LIMITES.pasos.defecto));
   const guardarAjustes = () => LS.set('carrera_ajustes', ajustes);
 
   function aplicarTema() {
@@ -320,7 +322,7 @@
   /** modo = null conserva el actual (al entrar en una sala). */
   function abrirConfig(modo) {
     Online.salir(); S.onl = null;
-    if (modo) { S.modo = modo; S.sala = null; S.pasos = LIMITES.pasos.defecto; S.semillaElegida = null; }
+    if (modo) { S.modo = modo; S.sala = null; S.pasos = modo === 'personalizada' ? ajustes.pasosPers : LIMITES.pasos.defecto; S.semillaElegida = null; }
     ajustarJugadores();
     $('cfgTitulo').textContent = MODOS[S.modo].nombre;
     $('cfgReglas').textContent = MODOS[S.modo].reglas;
@@ -466,7 +468,7 @@
     const T = $('track'), hasta = h.getBoundingClientRect();
     const dx = desde.left - hasta.left, dy = desde.top - hasta.top, largo = Math.hypot(dx, dy);
     if (largo < 3) return false;
-    const zancadas = Math.max(2, Math.round(dur / 150)), n = zancadas * 2, alto = Math.min(avanza ? 14 : 7, hasta.height * .1), giro = avanza ? 3.5 : 6;
+    const zancadas = Math.max(2, Math.round(dur / 180)), n = zancadas * 2, alto = Math.min(avanza ? 14 : 7, hasta.height * .1), giro = avanza ? 3.5 : 6;
     const kf = [];
     for (let i = 0; i <= n; i++) {
       const t = i / n, resta = 1 - (1 - Math.cos(Math.PI * t)) / 2, aire = i % 2 === 1 && i < n;      // sale y llega suave; los pasos impares van en el aire
@@ -562,10 +564,12 @@
     await w(1000); if (mi !== token) return;
 
     const nom = nombreCarta(r.carta);
-    let abreCartel = false;
+    let abreCartel = false, durGalope = 0;
     if (r.avanza) {
-      Sonido.casco(carrera.palos.indexOf(r.avanza), carrera.palos.length);
-      moverCaballos(r.posTrasAvance, Math.round(520 * f));
+      // El galope dura lo que dura el sonido del caballo. En una sala en vivo se mantiene el ritmo de siempre: todos los móviles comparten horario.
+      const seg = Sonido.casco(carrera.palos.indexOf(r.avanza), carrera.palos.length);
+      durGalope = f < .5 ? 0 : enVivo() ? Math.round(520 * f) : Math.round((seg || DUR_GALOPE) * 1000);
+      moverCaballos(r.posTrasAvance, durGalope);
       decir(`Sale el ${nom}: avanza el caballo de ${minus(r.carta.palo)}.`);
     } else {
       decir(`Sale el ${nom}: su caballo ya ha llegado y no pasa nada.`);
@@ -583,20 +587,22 @@
       }
     }
     pintarLista(); pintarLog();
-    await w(550); if (mi !== token) return;
+    await sleep(enVivo() ? 550 * f : Math.max(550 * f, durGalope + 150)); if (mi !== token) return;     // la carta siguiente espera a que acabe el galope
 
     for (const rev of r.revelaciones) {
+      let durRetro = 0;
       chkEls[rev.paso - 1].classList.add('up'); Sonido.carta();
       await w(1050); if (mi !== token) return;
       if (rev.retrocede) {
         Sonido.retroceso();
-        moverCaballos(rev.posDespues, Math.round(520 * f));
+        durRetro = f < .5 ? 0 : enVivo() ? Math.round(520 * f) : DUR_RETROCESO;
+        moverCaballos(rev.posDespues, durRetro);
         decir(`Control ${rev.paso}: se voltea el ${nombreCarta(rev.carta)} y el caballo de ${minus(rev.carta.palo)} retrocede.`);
       } else {
         decir(`Control ${rev.paso}: se voltea el ${nombreCarta(rev.carta)}; su caballo ya llegó y no retrocede.`);
       }
       pintarLog();
-      await w(550); if (mi !== token) return;
+      await sleep(enVivo() ? 550 * f : Math.max(550 * f, durRetro + 150)); if (mi !== token) return;
     }
 
     busy = false;
@@ -714,7 +720,7 @@
   function repetir() { sinFichas = true; nuevaCarrera(); }
   const puedeRepetir = () => !enVivo() && !S.camp;
   const puedeGuardar = () => !enVivo() && !S.sala && !!carrera && carrera.palos.length === 4;
-  const botonesSemilla = () => (puedeRepetir() ? '<button id="cRepetir" class="ghost">Repetir carrera</button>' : '') + (puedeGuardar() ? '<button id="cGuardar" class="ghost">Guardar semilla</button>' : '');
+  const botonesSemilla = () => (puedeRepetir() ? '<button id="cRepetir" class="ghost" title="Vuelve a correr exactamente esta carrera: las mismas cartas en el mismo orden">Repetir la misma carrera</button>' : '') + (puedeGuardar() ? '<button id="cGuardar" class="ghost">Guardar semilla</button>' : '');
   function guardarSemilla(boton) {
     const r = Sem.guardar({ semilla: semillaActual(), pasos: pasosEfectivos(), ganador: carrera.ganador || null });
     if (!r.ok) { avisar('No se pudo guardar la semilla.'); return; }
@@ -1004,6 +1010,7 @@
     pintarPersonalizar();
     $('ajVibra').checked = ajustes.vibracion;
     $('ajMusica').checked = ajustes.musica; $('ajEfectos').checked = ajustes.efectos; $('ajVol').value = Math.round(ajustes.volumen * 100); $('ajPantalla').checked = ajustes.pantalla; $('ajQuedan').checked = ajustes.soloQuedan;
+    $('ajPasosPers').value = ajustes.pasosPers; $('ajPasosPersV').textContent = ajustes.pasosPers;
     $('ajVol').closest('label').hidden = !Sonido.volumenAjustable;   // en iPhone no funciona con la música
     $('dAjustes').showModal();
   };
@@ -1032,6 +1039,7 @@
     ajustes.pantalla = e.target.checked; guardarAjustes();
     if (!ajustes.pantalla) soltarPantalla(); else if (vista === 'juego') pedirPantalla();
   };
+  $('ajPasosPers').oninput = e => { ajustes.pasosPers = +e.target.value; $('ajPasosPersV').textContent = e.target.value; guardarAjustes(); };
   $('ajQuedan').onchange = e => { ajustes.soloQuedan = e.target.checked; guardarAjustes(); };
   $('ajFichas').onclick = async () => {
     if (await confirmar('Todos los jugadores vuelven a 100 fichas.', 'Reiniciar')) {

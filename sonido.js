@@ -18,7 +18,13 @@
     if (ctx && ctx.state !== 'running') { try { const p = ctx.resume(); if (p && p.catch) p.catch(() => { /* nada */ }); } catch (e) { /* nada */ } }
     return ctx;
   }
-  const vol = () => (silencio || !aj.efectos ? 0 : aj.volumen);
+  // En iPhone/iPad el volumen de un <audio> no se puede cambiar (siempre vale 1): se detecta, no se adivina.
+  const esIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const volumenAjustable = !esIOS && (() => { try { const a = new Audio(); a.volume = .5; return a.volume === .5; } catch (e) { return false; } })();
+
+  // Sin barra de volumen en pantalla (iPhone), el nivel guardado no cuenta: un valor viejo (p. ej. 0) dejaría los efectos mudos sin poder arreglarlo.
+  const NIVEL_FIJO = .75;
+  const vol = () => (silencio || !aj.efectos ? 0 : (volumenAjustable ? aj.volumen : NIVEL_FIJO));
 
   function tono(f, t0, dur, tipo, g, f2) {
     const c = ac(), v = vol(); if (!c || !v) return;
@@ -40,7 +46,7 @@
   function reproducir(buf, g, pan, rate, t0) {            // clip real, con volumen, posición y velocidad propios
     const c = ac(), v = vol(); if (!c || !v) return;
     const s = c.createBufferSource(), a = c.createGain();
-    s.buffer = buf; s.playbackRate.value = rate; a.gain.value = g * v; s.connect(a);
+    s.buffer = buf; s.playbackRate.value = rate; a.gain.value = Math.min(1, g * v); s.connect(a);          // sin pasar de 1: los clips ya llegan al máximo
     if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = pan; a.connect(p); p.connect(c.destination); }
     else a.connect(c.destination);
     s.start(c.currentTime + (t0 || 0));
@@ -55,10 +61,6 @@
     });
   }
 
-  // En iPhone/iPad el volumen de un <audio> no se puede cambiar (siempre vale 1): se detecta, no se adivina.
-  const esIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const volumenAjustable = !esIOS && (() => { try { const a = new Audio(); a.volume = .5; return a.volume === .5; } catch (e) { return false; } })();
-
   const Sonido = {
     usar(ajustes) { aj = ajustes; },
     get volumenAjustable() { return volumenAjustable; },
@@ -67,14 +69,19 @@
     actualizar() { Musica.ajustar(); },
     desbloquear() { ac(); cargar(); Musica.precargar(); },
     clic() { tono(520, 0, .05, 'triangle', .18); },
-    carta() { ruido(0, .13, 1200, 6500, .4); },
-    /** Un caballo avanza: galope al azar, más a la izquierda o derecha según su carril (i de n). */
+    carta() { ruido(0, .13, 1200, 6500, .12); },                  // el chasquido de destapar una carta, bien bajito
+    /** Un caballo avanza: galope al azar, más a la izquierda o derecha según su carril (i de n).
+     *  Devuelve cuántos segundos dura ese galope (suene o no), para que la animación acabe a la vez; null si aún no hay clips. */
     casco(i, n) {
       const pan = n > 1 ? ((i / (n - 1)) * 2 - 1) * .6 : 0;
       if (bufs.galope.length) {
-        reproducir(azar(bufs.galope), .9, pan, .94 + Math.random() * .12);
+        const buf = azar(bufs.galope), rate = .94 + Math.random() * .12;
+        reproducir(buf, 1.15, pan, rate);
         if (bufs.relincho.length && Math.random() < .12) reproducir(azar(bufs.relincho), .55, pan, .97 + Math.random() * .06, .3);
-      } else [0, .09, .2, .29].forEach((t, k) => { tono(k % 2 ? 110 : 150, t, .08, 'sine', .55, 55); ruido(t, .04, 900, 400, .25); });
+        return buf.duration / rate;
+      }
+      [0, .09, .2, .29].forEach((t, k) => { tono(k % 2 ? 110 : 150, t, .08, 'sine', .55, 55); ruido(t, .04, 900, 400, .25); });
+      return null;
     },
     relincho(t0) { if (bufs.relincho.length) reproducir(azar(bufs.relincho), .7, 0, .98 + Math.random() * .05, t0 || 0); },
     retroceso() { tono(320, 0, .3, 'sawtooth', .16, 110); },

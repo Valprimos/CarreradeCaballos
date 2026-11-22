@@ -4,7 +4,7 @@ const { defineConfig } = require('@playwright/test');
 
 module.exports = defineConfig({
   testDir: 'test-ui',
-  timeout: 200000,                 // las carreras completas tardan: la velocidad "rápida" aun así necesita un par de minutos
+  timeout: 420000,                 // las carreras completas tardan: cada galope dura lo que su sonido
   expect: { timeout: 15000 },
   fullyParallel: true,
   workers: process.env.CI ? 2 : undefined,
