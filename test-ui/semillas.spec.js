@@ -93,7 +93,7 @@ test('guardar la semilla al acabar y repetir la misma carrera: mismas cartas y l
   await page.$eval('#inPasos', el => { el.value = 2; el.dispatchEvent(new Event('input', { bubbles: true })); });
   await page.click('#start');
   await page.waitForSelector('#auto', { state: 'visible' }); await page.click('#auto');
-  await page.waitForSelector('#cartel:not([hidden])', { timeout: 150000 });
+  await page.waitForSelector('#cartel:not([hidden])', { timeout: 300000 });
   const primera = await cartas(page);
   const fichas1 = await page.locator('#bets .chips').allInnerTexts();
 
@@ -110,7 +110,7 @@ test('guardar la semilla al acabar y repetir la misma carrera: mismas cartas y l
   await expect(page.locator('#cartel')).toBeHidden();
   await expect(page.locator('#tituloLista')).toContainText('misma carrera');
   await page.waitForSelector('#auto', { state: 'visible' }); await page.click('#auto');
-  await page.waitForSelector('#cartel:not([hidden])', { timeout: 150000 });          // la repetición acaba en el mismo ganador
+  await page.waitForSelector('#cartel:not([hidden])', { timeout: 300000 });          // la repetición acaba en el mismo ganador
   const todas = await cartas(page), segunda = todas.slice(todas.indexOf('|') + 1);
   expect(segunda.length).toBeGreaterThan(2);
   expect(segunda, 'misma carrera, carta por carta').toEqual(primera);

@@ -11,7 +11,7 @@ test('partida rápida: gana un caballo, se continúa con los que quedan y sale l
   const errores = []; page.on('pageerror', e => errores.push(String(e)));
   await correrHastaGanador(page);
   await expect(page.locator('#cartel h2')).toContainText('Gana el caballo de');
-  await expect(page.locator('#cartel button')).toHaveText(['Continuar con los que quedan', 'Continuar con todas las cartas', 'Revancha', 'Repetir carrera', 'Guardar semilla', 'Finalizar']);
+  await expect(page.locator('#cartel button')).toHaveText(['Continuar con los que quedan', 'Continuar con todas las cartas', 'Revancha', 'Repetir la misma carrera', 'Guardar semilla', 'Finalizar']);
 
   const desde = await page.evaluate(() => window.__textos.length);
   await page.click('#cSeguir');

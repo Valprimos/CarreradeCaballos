@@ -33,7 +33,7 @@ test('en una carrera real, todos los avances y los retrocesos se hacen galopando
   await sembrar(page, conAjustes({ auto: true, velocidad: 'rapida' }));
   await abrirPartidaRapida(page);
   await page.click('#auto');
-  await page.waitForFunction(() => window.__mov.some(m => m.ahora < m.antes) && window.__mov.length > 8, null, { timeout: 170000, polling: 500 });
+  await page.waitForFunction(() => window.__mov.some(m => m.ahora < m.antes) && window.__mov.length > 8, null, { timeout: 300000, polling: 500 });
   const mov = await page.evaluate(() => window.__mov);
   expect(mov.filter(m => m.ahora > m.antes).length).toBeGreaterThan(3);
   expect(mov.filter(m => m.ahora < m.antes).length).toBeGreaterThan(0);

@@ -60,3 +60,40 @@ test.describe('en iPhone', () => {
     await expect(page.locator('#ajEfectos')).toBeVisible();
   });
 });
+
+test.describe('Mi partida personalizada (Ajustes)', () => {
+  const fijarPista = (page, n) => page.$eval('#ajPasosPers', (el, v) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); }, n);
+
+  test('la pista que eliges en Ajustes es con la que arranca Partida personalizada, también al reabrir la web', async ({ page }) => {
+    await page.goto('/');
+    await page.click('#btnAjustes');
+    await expect(page.locator('#ajPasosPersV')).toHaveText('6');
+    await fijarPista(page, 9);
+    await expect(page.locator('#ajPasosPersV')).toHaveText('9');
+    await page.locator('#dAjustes form.cierra button').click();
+    await page.click('.modo[data-modo="personalizada"]');
+    await expect(page.locator('#inPasos')).toHaveValue('9');
+    await expect(page.locator('#inPasosV')).toHaveText('9');
+    await page.reload();
+    await page.click('.modo[data-modo="personalizada"]');
+    await expect(page.locator('#inPasos')).toHaveValue('9');
+  });
+
+  test('solo afecta a Partida personalizada: campeonato sigue con su pista de siempre', async ({ page }) => {
+    await sembrar(page, { carrera_ajustes: { ...conAjustes().carrera_ajustes, pasosPers: 10 } });
+    await page.goto('/');
+    await page.click('.modo[data-modo="campeonato"]');
+    await expect(page.locator('#inPasos')).toHaveValue('6');
+  });
+
+  test('un valor guardado estropeado no rompe la pista', async ({ page }) => {
+    for (const [malo, esperado] of [[99, '12'], [1, '2'], ['x', '6'], [null, '6']]) {
+      const p = await page.context().newPage();
+      await sembrar(p, { carrera_ajustes: { ...conAjustes().carrera_ajustes, pasosPers: malo } });
+      await p.goto('/');
+      await p.click('.modo[data-modo="personalizada"]');
+      await expect(p.locator('#inPasos'), String(malo)).toHaveValue(esperado);
+      await p.close();
+    }
+  });
+});

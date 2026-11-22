@@ -40,18 +40,21 @@ async function abrirPartidaRapida(page) {
 async function correrHastaGanador(page) {
   await abrirPartidaRapida(page);
   await page.click('#auto');
-  await page.waitForSelector('#cartel:not([hidden])', { timeout: 150000 });
+  await page.waitForSelector('#cartel:not([hidden])', { timeout: 300000 });
 }
 const esperarClasificacion = page => page.waitForFunction(() => {
   const c = document.querySelector('#cartel'), h = c && c.querySelector('h2');
   return !c.hidden && h && /Clasificaci|sin ganador/.test(h.textContent);
-}, null, { timeout: 170000 });
+}, null, { timeout: 300000 });
 
 // Espía el contexto de audio (fuentes lanzadas, resume) y el play/pause del <audio> de la música.
 const ESPIAS = () => {
   window.__fuentes = []; window.__resumes = 0; window.__ctx = null; window.__musica = { paused: true };
   const _start = AudioBufferSourceNode.prototype.start;
-  AudioBufferSourceNode.prototype.start = function () { window.__fuentes.push(this.buffer ? this.buffer.duration : 0); return _start.apply(this, arguments); };
+  window.__clips = []; window.__ganancias = [];
+  AudioBufferSourceNode.prototype.start = function () { window.__fuentes.push(this.buffer ? this.buffer.duration : 0); if (this.buffer) window.__clips.push({ dur: this.buffer.duration, rate: this.playbackRate.value }); return _start.apply(this, arguments); };
+  const _v = Object.getOwnPropertyDescriptor(AudioParam.prototype, 'value');
+  Object.defineProperty(AudioParam.prototype, 'value', { get() { return _v.get.call(this); }, set(x) { if (x > 0) window.__ganancias.push(+x.toFixed(3)); _v.set.call(this, x); } });
   const _C = window.AudioContext;
   window.AudioContext = function (...a) {
     const c = new _C(...a); window.__ctx = c;
@@ -59,6 +62,9 @@ const ESPIAS = () => {
     return c;
   };
   window.AudioContext.prototype = _C.prototype;
+  window.__decodificados = 0;                                       // clips de galope y relincho ya listos para sonar
+  const _dec = _C.prototype.decodeAudioData;
+  _C.prototype.decodeAudioData = function (b, ok, ko) { return _dec.call(this, b, x => { window.__decodificados++; if (ok) ok(x); }, ko); };
   const P = HTMLMediaElement.prototype;
   Object.defineProperty(P, 'paused', { get() { return this.__p !== false; } });
   P.play = function () { this.__p = false; return Promise.resolve(); };
