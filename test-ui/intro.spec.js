@@ -17,7 +17,9 @@ test.beforeEach(async ({ page }) => {
       if (e && r.ini === undefined) {
         const ini = performance.now();                                                // primero la hora: lo de después fuerza un cálculo de diseño que, con el equipo cargado, tarda
         const encima = document.elementFromPoint(innerWidth / 2, innerHeight / 2);
-        Object.assign(r, { ini, viajeros: e.querySelectorAll('.i-c').length, fondo: e.querySelectorAll('.i-fondo').length, tapaLaApp: !!encima && !!encima.closest('#intro'),
+        const rs = [...e.querySelectorAll('.i-c')].map(c => c.getBoundingClientRect()), ov = e.getBoundingClientRect();
+        const centro = [(Math.min(...rs.map(x => x.left)) + Math.max(...rs.map(x => x.right))) / 2 - (ov.left + ov.width / 2), (Math.min(...rs.map(x => x.top)) + Math.max(...rs.map(x => x.bottom))) / 2 - (ov.top + ov.height / 2)];   // dónde está la doble C respecto al centro del cartel
+        Object.assign(r, { ini, centro, viajeros: e.querySelectorAll('.i-c').length, fondo: e.querySelectorAll('.i-fondo').length, tapaLaApp: !!encima && !!encima.closest('#intro'),
           fundido: e.getAnimations().map(a => [a.effect.getTiming().delay, a.effect.getTiming().duration]) });
       }
       if (e && e.classList.contains('i-saltado') && r.saltada === undefined) r.saltada = performance.now();
@@ -51,6 +53,8 @@ for (const [nombre, viewport] of [['escritorio', { width: 1100, height: 680 }], 
       expect(s.fondo).toBe(1);
       expect(s.tapaLaApp, 'lo de debajo no recibe toques mientras dura').toBe(true);
       expect(s.saltada, 'nadie la ha saltado').toBeUndefined();
+      expect(Math.abs(s.centro[0]), 'la doble C sale centrada (horizontal)').toBeLessThan(2);
+      expect(Math.abs(s.centro[1]), 'la doble C sale centrada (vertical)').toBeLessThan(2);
       expect(s.error, 'aterrizan encima de las «C» del título (diferencia en píxeles)').toBeLessThan(1.5);
       expect(s.claseQuitada).toBe(true);
       expect(s.cVisibles, 'las «C» del título quedan a la vista al acabar').toEqual(['visible', 'visible']);
@@ -62,6 +66,40 @@ for (const [nombre, viewport] of [['escritorio', { width: 1100, height: 680 }], 
     });
   });
 }
+
+test.describe('el iPhone da mal el tamaño de la ventana al abrir la app en horizontal', () => {
+  test.use({ viewport: { width: 844, height: 390 } });
+  test('la doble C sale igualmente centrada y llega a su sitio (no depende de innerWidth/innerHeight)', async ({ page }) => {
+    // Lo que pasaba: durante un rato la ventana decía medir 390×844 (en vertical) y la doble C salía abajo a la izquierda, cortada.
+    await page.addInitScript(() => {
+      Object.defineProperty(window, 'innerWidth', { get: () => 390, configurable: true });
+      Object.defineProperty(window, 'innerHeight', { get: () => 844, configurable: true });
+    });
+    await abrir(page);
+    await esperarFin(page);
+    const s = await leer(page);
+    expect(Math.abs(s.centro[0])).toBeLessThan(2);
+    expect(Math.abs(s.centro[1])).toBeLessThan(2);
+    expect(s.error, 'y llega exacta al título').toBeLessThan(1.5);
+  });
+});
+
+test.describe('en la app instalada (iPhone en vertical, con barra de estado)', () => {
+  test.use({ viewport: { width: 390, height: 797 } });
+  test('la doble C sube medio hueco de la barra de estado para verse centrada en la pantalla', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'standalone', { value: true, configurable: true });
+      Object.defineProperty(screen, 'height', { value: 844, configurable: true });             // pantalla 844, ventana 797: la barra de estado mide 47
+    });
+    await abrir(page);
+    await esperarFin(page);
+    const s = await leer(page);
+    expect(Math.abs(s.centro[0])).toBeLessThan(2);
+    expect(s.centro[1], 'sube la mitad de 47 px').toBeGreaterThan(-26);
+    expect(s.centro[1]).toBeLessThan(-21);
+    expect(s.error, 'y aun así llega exacta al título').toBeLessThan(1.5);
+  });
+});
 
 test('se salta tocando la pantalla, y el toque no se cuela a la app', async ({ page }) => {
   await congelar(page);

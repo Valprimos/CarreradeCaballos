@@ -110,6 +110,12 @@ Los dorsos de colores se obtienen con un filtro de color en pantalla.
 
 Reglas, modos, campeonato y salas por código: versión Flutter de [Danielgrs18](https://github.com/Danielgrs18/CarreraDeCaballos).
 
+## Pantalla de inicio
+
+El título, el abanico de cartas y las tarjetas de modo se adaptan a la pantalla: en escritorio ocupan la altura disponible
+(título grande, sin hueco muerto abajo) y en móvil en horizontal el abanico y el título van en una fila. *Créditos* está
+arriba a la derecha, a un toque desde el inicio.
+
 ## Intro
 
 Al abrir la app aparece la doble C (las dos herraduras del logo) en el centro; después las dos herraduras viajan hasta el
