@@ -152,6 +152,8 @@
     vista = v;
     for (const [k, id] of Object.entries(VISTAS)) $(id).hidden = k !== v;
     $('btnMenu').hidden = v === 'menu';
+    $('credBtn').hidden = v !== 'menu';                   // los créditos están a un toque desde la pantalla de inicio
+    document.body.classList.toggle('en-menu', v === 'menu');
     $('marca').hidden = false;
     document.body.classList.toggle('playing', v === 'juego');
     if (v === 'juego') pedirPantalla(); else soltarPantalla();

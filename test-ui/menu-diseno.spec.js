@@ -23,7 +23,7 @@ for (const [nombre, viewport, esperado] of PANTALLAS) {
         return { titulo: parseFloat(getComputedStyle(document.querySelector('#vMenu h1')).fontSize), huecoLogoCartas: Math.min(...cartas) - r('#marca').bottom,
                  huecoAbajo: innerHeight - r('#vMenu .modos').bottom, alto: document.documentElement.scrollHeight - innerHeight,
                  carta: document.querySelector('#vMenu .fan .fc').offsetWidth, logo: r('.top .logo').height,
-                 abanicoSobreTitulo: r('#vMenu .fan').bottom <= r('#vMenu h1').top + 6, tituloSobreModos: r('#vMenu h1').bottom <= r('#vMenu .modos').top };
+                 huecoHeroModos: r('#vMenu .modos').top - r('#vMenu .hero').bottom, abanicoSobreTitulo: r('#vMenu .fan').bottom <= r('#vMenu h1').top + 6, tituloSobreModos: r('#vMenu h1').bottom <= r('#vMenu .modos').top };
       });
       expect(d.carta, 'tamaño de las cartas del abanico').toBeGreaterThanOrEqual(esperado.carta);
       expect(d.logo, 'tamaño del CC de arriba').toBeGreaterThanOrEqual(esperado.logo);
@@ -33,8 +33,15 @@ for (const [nombre, viewport, esperado] of PANTALLAS) {
       expect(d.huecoLogoCartas, 'el logo no toca las cartas').toBeGreaterThanOrEqual(10);
       if (esperado.cabe) {
         expect(d.alto, 'todo cabe sin bajar').toBeLessThanOrEqual(1);
-        expect(d.huecoAbajo, 'sin hueco muerto debajo de las tarjetas').toBeLessThan(140);
+        expect(d.huecoAbajo, 'las tarjetas llegan abajo: sin hueco muerto debajo').toBeLessThan(45);
+        expect(d.huecoHeroModos, 'y no se pegan al título').toBeGreaterThanOrEqual(8);
       }
+    });
+
+    test('al bajar hasta el final, no queda hueco debajo de las tarjetas', async ({ page }) => {
+      await page.evaluate(() => window.scrollTo(0, 99999));
+      const hueco = await page.evaluate(() => innerHeight - document.querySelector('#vMenu .modos').getBoundingClientRect().bottom);
+      expect(hueco).toBeLessThan(45);
     });
 
     test('Créditos está arriba a la derecha (un toque desde el inicio) y ya no hay pie de página', async ({ page }) => {

@@ -603,7 +603,7 @@ html,body,button,.track,.pile{touch-action:manipulation}
 
 /* ---------- Intro de la app (intro.js) ----------
    La doble C aparece en el centro y viaja hasta su sitio en el título del menú, mientras el fondo se deshace en degradado. */
-#intro{position:fixed;inset:0;z-index:3000;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;overflow:hidden;container-type:size}   /* las medidas son las del propio cartel, no las de la ventana */
+#intro{position:fixed;inset:0;z-index:3000;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;overflow:hidden}
 .intro-activa{overflow:hidden}
 .intro-activa #vMenu h1 .hc{visibility:hidden}                  /* las «C» del título esperan a que lleguen las del viaje */
 /* el fondo es una máscara de degradado a tres alturas: al deslizarla, se deshace de arriba abajo con un borde muy suave */
@@ -612,17 +612,14 @@ html,body,button,.track,.pile{touch-action:manipulation}
   -webkit-mask-size:100% 300%;mask-size:100% 300%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:0 100%;mask-position:0 100%}
 .i-va .i-fondo{animation:i-disuelve 1.4s cubic-bezier(.45,0,.55,1) forwards}
 @keyframes i-disuelve{to{-webkit-mask-position:0 0;mask-position:0 0}}
-.i-halo{--d:min(90vmin,640px);--d:min(90cqmin,640px);position:absolute;left:50%;top:calc(50% - var(--sube,0px));width:var(--d);height:var(--d);margin:calc(var(--d) / -2) 0 0 calc(var(--d) / -2);border-radius:50%;
+.i-halo{position:absolute;left:50%;top:calc(50% - var(--sube,0px));width:var(--d,min(90vmin,640px));height:var(--d,min(90vmin,640px));margin:calc(var(--d,min(90vmin,640px)) / -2) 0 0 calc(var(--d,min(90vmin,640px)) / -2);border-radius:50%;
   background:radial-gradient(circle,rgba(240,196,83,.3) 0%,rgba(240,196,83,.1) 40%,transparent 68%);animation:i-halo-entra .9s ease-out both,i-respira 2.6s ease-in-out .9s infinite}
 .i-va .i-halo{animation:i-halo-sale .9s ease-in forwards}
 @keyframes i-halo-entra{from{opacity:0;transform:scale(.7)}}
 @keyframes i-respira{50%{transform:scale(1.08)}}
 @keyframes i-halo-sale{to{opacity:0;transform:scale(1.25)}}
-.i-c{--h:min(25vh,27vw,170px);--h:min(25cqh,27cqw,170px);position:absolute;left:50%;top:calc(50% - var(--sube,0px));width:calc(var(--h) * 71 / 80);height:var(--h);max-width:none;margin:0;display:block;will-change:transform;animation:i-c-entra .7s ease-out both;
+.i-c{position:absolute;left:0;top:0;max-width:none;margin:0;display:block;will-change:transform;animation:i-c-entra .7s ease-out both;
   filter:drop-shadow(0 4px 0 rgba(0,0,0,.45)) drop-shadow(0 0 .5rem rgba(240,196,83,.35))}
-.i-c:nth-of-type(1){transform:translate(calc(-100% - var(--h) * .0444),-50%)}
-.i-c:nth-of-type(2){transform:translate(calc(var(--h) * .0444),-50%)}
-.i-c.i-viaja{left:0;top:0}                                       /* durante el viaje, la posición la lleva intro.js (translate en px) */
 @keyframes i-c-entra{from{opacity:0}}
 .i-c.i-sin-destino{animation:i-c-sale .6s ease-in forwards}
 @keyframes i-c-sale{to{opacity:0}}
@@ -635,7 +632,9 @@ html,body,button,.track,.pile{touch-action:manipulation}
 #credBtn{justify-self:end}
 body.en-menu{display:flex;flex-direction:column;min-height:100dvh;padding-bottom:max(20px,env(safe-area-inset-bottom))}      /* sin pie de página: no hace falta el hueco de abajo */
 body.en-menu main{flex:1;width:100%;display:flex;flex-direction:column;max-width:min(1480px,94vw)}
-body.en-menu #vMenu{margin-block:auto}                          /* se reparte en la altura que sobra: ni pegado arriba ni un hueco abajo */
+body.en-menu #vMenu{flex:1;display:flex;flex-direction:column}                  /* llena la altura: las tarjetas quedan abajo y el hueco que sobra se reparte arriba */
+body.en-menu #vMenu .hero{margin-block:auto}                                   /* el título y las cartas, centrados en el hueco que queda sobre las tarjetas */
+body.en-menu #vMenu .modos{margin-top:clamp(10px,2.6vh,30px)}
 body.en-menu .top{margin-bottom:clamp(14px,3.4vh,40px)}
 body.en-menu #vMenu .hero{padding-top:clamp(4px,1.6vh,22px)}
 @media (min-width:880px) and (min-height:600px){
@@ -657,13 +656,12 @@ body.en-menu #vMenu .hero{padding-top:clamp(4px,1.6vh,22px)}
 @media (orientation:landscape) and (max-height:620px){
   /* El formato de siempre (logo, abanico, título y las cinco tarjetas en fila), ahora que no hay «Créditos» abajo:
      ese hueco se reparte entre las piezas y se baja todo (más aire entre el logo y las cartas, abanico y título mayores). */
-  body.en-menu #vMenu:not([hidden]){display:flex;flex-direction:column;justify-content:center;gap:clamp(8px,3.2vh,18px)}
   body.en-menu .top{margin-bottom:clamp(10px,4.2vh,22px)}
-  body.en-menu #vMenu .hero{margin:0;gap:clamp(4px,1.2vh,8px);padding-top:clamp(6px,2.6vh,16px)}
+  body.en-menu #vMenu .hero{gap:clamp(4px,1.2vh,8px);padding-top:clamp(6px,2.6vh,16px)}
   body.en-menu h1{font-size:clamp(1.8rem,9.6vh,3rem)}
   body.en-menu .fan{padding:clamp(6px,2vh,14px) 0 clamp(4px,1.2vh,10px)}
-  body.en-menu .fan .fc{--w:clamp(56px,17.5vh,92px)}
-  body.en-menu #vMenu .modos{grid-template-columns:repeat(5,1fr);gap:clamp(6px,1.2vw,12px);margin:0}
+  body.en-menu .fan .fc{--w:clamp(56px,17vh,92px)}
+  body.en-menu #vMenu .modos{grid-template-columns:repeat(5,1fr);gap:clamp(6px,1.2vw,12px);margin-bottom:0}
   body.en-menu #vMenu .modo{padding:clamp(8px,2.4vh,14px);gap:4px}
   body.en-menu .modo b{font-size:clamp(.9rem,3vh,1.1rem)}
   body.en-menu .modo span.desc{font-size:clamp(.66rem,2.3vh,.82rem);line-height:1.3;-webkit-line-clamp:4}

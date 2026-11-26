@@ -28,18 +28,29 @@
     activa = el;
     const viajeros = [...el.querySelectorAll('.i-c')];
 
-    // La doble C del centro: dos herraduras juntas, como el logo.
-    const alto0 = Math.min(innerWidth * .27, innerHeight * .25, 170), ancho0 = alto0 * 71 / 80, sep = ancho0 * .1;
-    const origen = viajeros.map((v, i) => {
-      const o = { x: innerWidth / 2 + (i ? sep / 2 : -sep / 2 - ancho0), y: innerHeight / 2 - alto0 / 2, w: ancho0, h: alto0 };
-      pintar(v, o); return o;
-    });
+    // La doble C del centro se coloca en píxeles midiendo el propio cartel (que ocupa toda la pantalla), no innerWidth/innerHeight:
+    // en iPhone, al abrir la app en horizontal, la ventana puede dar durante un rato el tamaño de la vertical.
+    // En la app instalada en vertical hay una barra de estado que no es nuestra: se sube medio hueco para que se vea centrada en la pantalla.
+    const enApp = (typeof matchMedia === 'function' && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+    let sube = 0;
+    if (enApp && matchMedia('(orientation: portrait)').matches) sube = Math.min(32, Math.max(0, Math.round((screen.height - innerHeight) / 2)));
+    el.style.setProperty('--sube', sube + 'px');
+    let origen = [];
     function pintar(v, r) { v.style.width = r.w + 'px'; v.style.height = r.h + 'px'; v.style.transform = `translate(${r.x}px,${r.y}px)`; }
+    function colocar() {
+      const R = el.getBoundingClientRect(), W = R.width, H = R.height;
+      const alto = Math.min(W * .27, H * .25, 170), ancho = alto * 71 / 80, sep = ancho * .1, y = R.top + H / 2 - alto / 2 - sube;
+      origen = [{ x: R.left + W / 2 - sep / 2 - ancho, y, w: ancho, h: alto }, { x: R.left + W / 2 + sep / 2, y, w: ancho, h: alto }];
+      viajeros.forEach((v, i) => pintar(v, origen[i]));
+      el.style.setProperty('--d', Math.min(W, H, 640 / .9) * .9 + 'px');             // tamaño del halo
+    }
+    colocar();
+    window.addEventListener('resize', colocar);
 
-    let saliendo = false, viajando = false, raf = 0, t1 = 0, tFin = 0;
+    let saliendo = false, raf = 0, t1 = 0, tFin = 0;
     const quitar = () => {
       cancelAnimationFrame(raf); clearTimeout(t1); clearTimeout(tFin);
-      document.removeEventListener('keydown', tecla, true);
+      document.removeEventListener('keydown', tecla, true); window.removeEventListener('resize', colocar);
       el.remove(); raiz.classList.remove('intro-activa'); activa = null;
     };
     const desvanecer = (ms, retraso) => {                     // fundido de todo el cartel (al saltar, con «reducir movimiento» o si no hay título al que llegar)
@@ -65,7 +76,7 @@
         viajeros.forEach(v => v.classList.add('i-sin-destino'));
         tFin = setTimeout(quitar, DISUELVE + 100); return;
       }
-      viajando = true;
+      window.removeEventListener('resize', colocar); colocar();   // medidas frescas justo antes de salir
       const ini = performance.now();
       const paso = ahora => {
         const p = Math.min(1, (ahora - ini) / VIAJE), e = ease(p), dd = destinos();
